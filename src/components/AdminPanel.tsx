@@ -169,13 +169,17 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
   };
 
   const filteredNovelas = state.config.novelas.filter(novela =>
-    novela.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    novela.genero.toLowerCase().includes(searchTerm.toLowerCase())
+    novela && (
+      (novela.titulo ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (novela.genero ?? '').toLowerCase().includes(searchTerm.toLowerCase())
+    )
   );
 
   const filteredZones = state.config.deliveryZones.filter(zone =>
-    (zone.name ?? '').toLowerCase().includes(zoneSearchTerm.toLowerCase()) ||
-    (zone.fullPath ?? '').toLowerCase().includes(zoneSearchTerm.toLowerCase())
+    zone && (
+      (zone.name ?? '').toLowerCase().includes(zoneSearchTerm.toLowerCase()) ||
+      (zone.fullPath ?? '').toLowerCase().includes(zoneSearchTerm.toLowerCase())
+    )
   );
   const calculateTransferPrice = (basePrice: number) => {
     return Math.round(basePrice * (1 + pricingForm.transferFeePercentage / 100));
