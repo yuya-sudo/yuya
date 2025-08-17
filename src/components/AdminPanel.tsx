@@ -175,7 +175,7 @@ export function AdminPanel({ isOpen, onClose }: AdminPanelProps) {
 
   const filteredZones = state.config.deliveryZones.filter(zone =>
     zone.name.toLowerCase().includes(zoneSearchTerm.toLowerCase()) ||
-    zone.fullPath.toLowerCase().includes(zoneSearchTerm.toLowerCase())
+    (zone.fullPath ?? '').toLowerCase().includes(zoneSearchTerm.toLowerCase())
   );
   const calculateTransferPrice = (basePrice: number) => {
     return Math.round(basePrice * (1 + pricingForm.transferFeePercentage / 100));
