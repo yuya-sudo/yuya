@@ -4,7 +4,8 @@ import type { Movie, TVShow, MovieDetails, TVShowDetails, Video, APIResponse, Ge
 class TMDBService {
   private async fetchData<T>(endpoint: string): Promise<T> {
     try {
-      const url = `${BASE_URL}${endpoint}`;
+      const separator = endpoint.includes('?') ? '&' : '?';
+      const url = `${BASE_URL}${endpoint}${separator}api_key=${API_KEY}`;
       const response = await fetch(url, API_OPTIONS);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

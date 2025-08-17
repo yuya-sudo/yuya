@@ -26,9 +26,7 @@ export function AdminLogin({ isOpen, onClose, onSuccess }: AdminLoginProps) {
     // Simulate loading for better UX
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // Verificar credenciales correctas
-    if (username === 'admin' && password === 'admin123') {
-      login(username, password);
+    if (login(username, password)) {
       setUsername('');
       setPassword('');
       setIsLoading(false);

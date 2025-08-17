@@ -204,17 +204,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const calculateItemPrice = (item: SeriesCartItem): number => {
-    // Get current admin config for synchronized pricing
-    const adminConfig = JSON.parse(localStorage.getItem('adminConfig') || '{"pricing":{"moviePrice":80,"seriesPrice":300,"transferFeePercentage":10}}');
+    // Get admin config for dynamic pricing
+    const adminConfig = JSON.parse(localStorage.getItem('adminConfig') || '{}');
     const moviePrice = adminConfig.pricing?.moviePrice || 80;
     const seriesPrice = adminConfig.pricing?.seriesPrice || 300;
     const transferFeePercentage = adminConfig.pricing?.transferFeePercentage || 10;
-    
-    // Verificar si es una novela (tiene propiedades especiales)
-    if ((item as any).isNovela) {
-      const novelaItem = item as any;
-      return item.paymentType === 'transfer' ? novelaItem.transferPrice : novelaItem.cashPrice;
-    }
     
     const isAnime = item.original_language === 'ja' || 
                    (item.genre_ids && item.genre_ids.includes(16)) ||
@@ -238,8 +232,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const calculateTotalByPaymentType = (): { cash: number; transfer: number } => {
-    // Get current admin config for synchronized pricing
-    const adminConfig = JSON.parse(localStorage.getItem('adminConfig') || '{"pricing":{"moviePrice":80,"seriesPrice":300,"transferFeePercentage":10}}');
+    // Get admin config for dynamic pricing
+    const adminConfig = JSON.parse(localStorage.getItem('adminConfig') || '{}');
     const moviePrice = adminConfig.pricing?.moviePrice || 80;
     const seriesPrice = adminConfig.pricing?.seriesPrice || 300;
     const transferFeePercentage = adminConfig.pricing?.transferFeePercentage || 10;

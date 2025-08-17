@@ -1,13 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, Trash2, Star, Calendar, MessageCircle, ArrowLeft, Edit3, Tv, DollarSign, CreditCard, Calculator, Settings, BookOpen } from 'lucide-react';
+import { ShoppingCart, Trash2, Star, Calendar, MessageCircle, ArrowLeft, Edit3, Tv, DollarSign, CreditCard, Calculator, Settings } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAdmin } from '../context/AdminContext';
 import { PriceCard } from '../components/PriceCard';
 import { CheckoutModal, OrderData, CustomerInfo } from '../components/CheckoutModal';
 import { AdminLogin } from '../components/AdminLogin';
 import { AdminPanel } from '../components/AdminPanel';
-import { NovelasModal } from '../components/NovelasModal';
 import { sendOrderToWhatsApp } from '../utils/whatsapp';
 import { IMAGE_BASE_URL, POSTER_SIZE } from '../config/api';
 
@@ -17,7 +16,6 @@ export function Cart() {
   const [showCheckoutModal, setShowCheckoutModal] = React.useState(false);
   const [showAdminLogin, setShowAdminLogin] = React.useState(false);
   const [showAdminPanel, setShowAdminPanel] = React.useState(false);
-  const [showNovelasModal, setShowNovelasModal] = React.useState(false);
 
   const handleCheckout = (orderData: OrderData) => {
     // Calculate totals
@@ -102,13 +100,6 @@ export function Cart() {
               Descubrir Anime
             </Link>
             <button
-              onClick={() => setShowNovelasModal(true)}
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-3 rounded-lg font-medium transition-colors text-center flex items-center justify-center"
-            >
-              <BookOpen className="h-5 w-5 mr-2" />
-              Catálogo de Novelas
-            </button>
-            <button
               onClick={() => setShowAdminLogin(true)}
               className="w-full bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white px-6 py-3 rounded-lg font-medium transition-colors text-center flex items-center justify-center"
             >
@@ -117,12 +108,6 @@ export function Cart() {
             </button>
           </div>
         </div>
-        
-        {/* Modal de Novelas */}
-        <NovelasModal 
-          isOpen={showNovelasModal} 
-          onClose={() => setShowNovelasModal(false)} 
-        />
         
         {/* Admin Login Modal */}
         <AdminLogin

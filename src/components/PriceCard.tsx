@@ -10,15 +10,15 @@ interface PriceCardProps {
 
 export function PriceCard({ type, selectedSeasons = [], episodeCount = 0, isAnime = false }: PriceCardProps) {
   const calculatePrice = () => {
-    // Get current admin config for synchronized pricing
-    const adminConfig = JSON.parse(localStorage.getItem('adminConfig') || '{"pricing":{"moviePrice":80,"seriesPrice":300,"transferFeePercentage":10}}');
+    // Get admin config for dynamic pricing
+    const adminConfig = JSON.parse(localStorage.getItem('adminConfig') || '{}');
     const moviePrice = adminConfig.pricing?.moviePrice || 80;
     const seriesPrice = adminConfig.pricing?.seriesPrice || 300;
     
     if (type === 'movie') {
-      return moviePrice; // Use synchronized pricing
+      return moviePrice; // Use dynamic pricing
     } else {
-      // Series: Use synchronized pricing per season
+      // Series: Use dynamic pricing per season
       if (isAnime) {
         return selectedSeasons.length * seriesPrice; // Anime por temporada
       } else {
@@ -27,12 +27,12 @@ export function PriceCard({ type, selectedSeasons = [], episodeCount = 0, isAnim
     }
   };
 
-  // Get transfer fee percentage from synchronized admin config
-  const adminConfig = JSON.parse(localStorage.getItem('adminConfig') || '{"pricing":{"moviePrice":80,"seriesPrice":300,"transferFeePercentage":10}}');
+  // Get transfer fee percentage from admin config
+  const adminConfig = JSON.parse(localStorage.getItem('adminConfig') || '{}');
   const transferFeePercentage = adminConfig.pricing?.transferFeePercentage || 10;
   
   const price = calculatePrice();
-  const transferPrice = Math.round(price * (1 + transferFeePercentage / 100)); // Precio con recargo sincronizado
+  const transferPrice = Math.round(price * (1 + transferFeePercentage / 100)); // Precio con recargo dinámico
   
   const getIcon = () => {
     if (type === 'movie') {
