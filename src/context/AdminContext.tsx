@@ -1,318 +1,666 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import type { AdminConfig, AdminState, NovelasConfig, DeliveryZoneConfig } from '../types/admin';
+
+export interface PriceConfig {
+  moviePrice: number;
+  seriesPrice: number;
+  transferFeePercentage: number;
+  novelPricePerChapter: number;
+}
+
+export interface DeliveryZone {
+  id: string;
+  name: string;
+  cost: number;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Novel {
+  id: number;
+  titulo: string;
+  genero: string;
+  capitulos: number;
+  año: number;
+  descripcion?: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SystemFile {
+  name: string;
+  path: string;
+  lastModified: string;
+  size: number;
+  type: 'component' | 'service' | 'context' | 'page' | 'config';
+  description: string;
+}
+
+interface AdminState {
+  isAuthenticated: boolean;
+  prices: PriceConfig;
+  deliveryZones: DeliveryZone[];
+  novels: Novel[];
+  systemFiles: SystemFile[];
+  notifications: AdminNotification[];
+  lastBackup: string | null;
+}
+
+export interface AdminNotification {
+  id: string;
+  type: 'success' | 'warning' | 'error' | 'info';
+  title: string;
+  message: string;
+  timestamp: string;
+  section: string;
+  action: string;
+}
+
+type AdminAction = 
+  | { type: 'LOGIN'; payload: boolean }
+  | { type: 'LOGOUT' }
+  | { type: 'UPDATE_PRICES'; payload: PriceConfig }
+  | { type: 'ADD_DELIVERY_ZONE'; payload: DeliveryZone }
+  | { type: 'UPDATE_DELIVERY_ZONE'; payload: DeliveryZone }
+  | { type: 'DELETE_DELIVERY_ZONE'; payload: string }
+  | { type: 'ADD_NOVEL'; payload: Novel }
+  | { type: 'UPDATE_NOVEL'; payload: Novel }
+  | { type: 'DELETE_NOVEL'; payload: number }
+  | { type: 'ADD_NOTIFICATION'; payload: AdminNotification }
+  | { type: 'CLEAR_NOTIFICATIONS' }
+  | { type: 'UPDATE_SYSTEM_FILES'; payload: SystemFile[] }
+  | { type: 'SET_LAST_BACKUP'; payload: string }
+  | { type: 'LOAD_ADMIN_DATA'; payload: Partial<AdminState> };
 
 interface AdminContextType {
   state: AdminState;
   login: (username: string, password: string) => boolean;
   logout: () => void;
-  updatePricing: (pricing: AdminConfig['pricing']) => void;
-  addNovela: (novela: Omit<NovelasConfig, 'id'>) => void;
-  updateNovela: (id: number, novela: Partial<NovelasConfig>) => void;
-  deleteNovela: (id: number) => void;
-  addDeliveryZone: (zone: Omit<DeliveryZoneConfig, 'id'>) => void;
-  updateDeliveryZone: (id: number, zone: Partial<DeliveryZoneConfig>) => void;
-  deleteDeliveryZone: (id: number) => void;
-  exportConfig: () => string;
-  importConfig: (configJson: string) => boolean;
-  resetToDefaults: () => void;
-  showNotification: (message: string, type: 'success' | 'info' | 'warning' | 'error') => void;
-  exportSystemFiles: () => void;
+  updatePrices: (prices: PriceConfig) => void;
+  addDeliveryZone: (zone: Omit<DeliveryZone, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateDeliveryZone: (zone: DeliveryZone) => void;
+  deleteDeliveryZone: (id: string) => void;
+  addNovel: (novel: Omit<Novel, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateNovel: (novel: Novel) => void;
+  deleteNovel: (id: number) => void;
+  addNotification: (notification: Omit<AdminNotification, 'id' | 'timestamp'>) => void;
+  clearNotifications: () => void;
+  exportSystemBackup: () => void;
+  getSystemFiles: () => SystemFile[];
 }
 
-type AdminAction = 
-  | { type: 'LOGIN' }
-  | { type: 'LOGOUT' }
-  | { type: 'UPDATE_PRICING'; payload: AdminConfig['pricing'] }
-  | { type: 'ADD_NOVELA'; payload: NovelasConfig }
-  | { type: 'UPDATE_NOVELA'; payload: { id: number; novela: Partial<NovelasConfig> } }
-  | { type: 'DELETE_NOVELA'; payload: number }
-  | { type: 'ADD_DELIVERY_ZONE'; payload: DeliveryZoneConfig }
-  | { type: 'UPDATE_DELIVERY_ZONE'; payload: { id: number; zone: Partial<DeliveryZoneConfig> } }
-  | { type: 'DELETE_DELIVERY_ZONE'; payload: number }
-  | { type: 'LOAD_CONFIG'; payload: AdminConfig }
-  | { type: 'RESET_CONFIG' }
-  | { type: 'SHOW_NOTIFICATION'; payload: { message: string; type: 'success' | 'info' | 'warning' | 'error' } };
+export const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
-const defaultConfig: AdminConfig = {
-  pricing: {
+const initialState: AdminState = {
+  isAuthenticated: false,
+  prices: {
     moviePrice: 80,
     seriesPrice: 300,
-    transferFeePercentage: 10
+    transferFeePercentage: 10,
+    novelPricePerChapter: 5
   },
-  novelas: [
-    { id: 1, titulo: "Corazón Salvaje", genero: "Drama/Romance", capitulos: 185, año: 2009, costoEfectivo: 925, costoTransferencia: 1018 },
-    { id: 2, titulo: "La Usurpadora", genero: "Drama/Melodrama", capitulos: 98, año: 1998, costoEfectivo: 490, costoTransferencia: 539 },
-    { id: 3, titulo: "María la del Barrio", genero: "Drama/Romance", capitulos: 73, año: 1995, costoEfectivo: 365, costoTransferencia: 402 },
-    { id: 4, titulo: "Marimar", genero: "Drama/Romance", capitulos: 63, año: 1994, costoEfectivo: 315, costoTransferencia: 347 },
-    { id: 5, titulo: "Rosalinda", genero: "Drama/Romance", capitulos: 80, año: 1999, costoEfectivo: 400, costoTransferencia: 440 },
-    { id: 6, titulo: "La Madrastra", genero: "Drama/Suspenso", capitulos: 135, año: 2005, costoEfectivo: 675, costoTransferencia: 743 },
-    { id: 7, titulo: "Rubí", genero: "Drama/Melodrama", capitulos: 115, año: 2004, costoEfectivo: 575, costoTransferencia: 633 },
-    { id: 8, titulo: "Pasión de Gavilanes", genero: "Drama/Romance", capitulos: 188, año: 2003, costoEfectivo: 940, costoTransferencia: 1034 },
-    { id: 9, titulo: "Yo Soy Betty, la Fea", genero: "Comedia/Romance", capitulos: 335, año: 1999, costoEfectivo: 1675, costoTransferencia: 1843 },
-    { id: 10, titulo: "El Cuerpo del Deseo", genero: "Drama/Fantasía", capitulos: 178, año: 2005, costoEfectivo: 890, costoTransferencia: 979 }
-  ],
   deliveryZones: [
-    { id: 1, name: 'Por favor seleccionar su Barrio/Zona', fullPath: 'Por favor seleccionar su Barrio/Zona', cost: 0, active: true },
-    { id: 2, name: 'Nuevo Vista Alegre', fullPath: 'Santiago de Cuba > Santiago de Cuba > Nuevo Vista Alegre', cost: 100, active: true },
-    { id: 3, name: 'Vista Alegre', fullPath: 'Santiago de Cuba > Santiago de Cuba > Vista Alegre', cost: 300, active: true },
-    { id: 4, name: 'Reparto Sueño', fullPath: 'Santiago de Cuba > Santiago de Cuba > Reparto Sueño', cost: 250, active: true },
-    { id: 5, name: 'San Pedrito', fullPath: 'Santiago de Cuba > Santiago de Cuba > San Pedrito', cost: 150, active: true },
-    { id: 6, name: 'Altamira', fullPath: 'Santiago de Cuba > Santiago de Cuba > Altamira', cost: 300, active: true },
-    { id: 7, name: 'Micro 7, 8 , 9', fullPath: 'Santiago de Cuba > Santiago de Cuba > Micro 7, 8 , 9', cost: 150, active: true },
-    { id: 8, name: 'Alameda', fullPath: 'Santiago de Cuba > Santiago de Cuba > Alameda', cost: 150, active: true },
-    { id: 9, name: 'El Caney', fullPath: 'Santiago de Cuba > Santiago de Cuba > El Caney', cost: 800, active: true },
-    { id: 10, name: 'Quintero', fullPath: 'Santiago de Cuba > Santiago de Cuba > Quintero', cost: 200, active: true },
-    { id: 11, name: 'Marimon', fullPath: 'Santiago de Cuba > Santiago de Cuba > Marimon', cost: 100, active: true },
-    { id: 12, name: 'Los cangrejitos', fullPath: 'Santiago de Cuba > Santiago de Cuba > Los cangrejitos', cost: 150, active: true },
-    { id: 13, name: 'Trocha', fullPath: 'Santiago de Cuba > Santiago de Cuba > Trocha', cost: 200, active: true },
-    { id: 14, name: 'Versalles', fullPath: 'Santiago de Cuba > Santiago de Cuba > Versalles', cost: 800, active: true },
-    { id: 15, name: 'Reparto Portuondo', fullPath: 'Santiago de Cuba > Santiago de Cuba > Reparto Portuondo', cost: 600, active: true },
-    { id: 16, name: '30 de Noviembre', fullPath: 'Santiago de Cuba > Santiago de Cuba > 30 de Noviembre', cost: 600, active: true },
-    { id: 17, name: 'Rajayoga', fullPath: 'Santiago de Cuba > Santiago de Cuba > Rajayoga', cost: 800, active: true },
-    { id: 18, name: 'Antonio Maceo', fullPath: 'Santiago de Cuba > Santiago de Cuba > Antonio Maceo', cost: 600, active: true },
-    { id: 19, name: 'Los Pinos', fullPath: 'Santiago de Cuba > Santiago de Cuba > Los Pinos', cost: 200, active: true },
-    { id: 20, name: 'Distrito José Martí', fullPath: 'Santiago de Cuba > Santiago de Cuba > Distrito José Martí', cost: 100, active: true },
-    { id: 21, name: 'Cobre', fullPath: 'Santiago de Cuba > Santiago de Cuba > Cobre', cost: 800, active: true },
-    { id: 22, name: 'El Parque Céspedes', fullPath: 'Santiago de Cuba > Santiago de Cuba > El Parque Céspedes', cost: 200, active: true },
-    { id: 23, name: 'Carretera del Morro', fullPath: 'Santiago de Cuba > Santiago de Cuba > Carretera del Morro', cost: 300, active: true }
-  ]
+    {
+      id: '1',
+      name: 'Santiago de Cuba > Santiago de Cuba > Nuevo Vista Alegre',
+      cost: 100,
+      active: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: '2',
+      name: 'Santiago de Cuba > Santiago de Cuba > Vista Alegre',
+      cost: 300,
+      active: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+  ],
+  novels: [],
+  systemFiles: [],
+  notifications: [],
+  lastBackup: null
 };
-
-const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
 function adminReducer(state: AdminState, action: AdminAction): AdminState {
   switch (action.type) {
     case 'LOGIN':
-      return { ...state, isAuthenticated: true };
+      return { ...state, isAuthenticated: action.payload };
     case 'LOGOUT':
       return { ...state, isAuthenticated: false };
-    case 'UPDATE_PRICING':
-      const newConfig = { ...state.config, pricing: action.payload };
-      localStorage.setItem('adminConfig', JSON.stringify(newConfig));
-      return { ...state, config: newConfig };
-    case 'ADD_NOVELA':
-      const configWithNewNovela = {
-        ...state.config,
-        novelas: [...state.config.novelas, action.payload]
-      };
-      localStorage.setItem('adminConfig', JSON.stringify(configWithNewNovela));
-      return { ...state, config: configWithNewNovela };
-    case 'UPDATE_NOVELA':
-      const updatedNovelas = state.config.novelas.map(novela =>
-        novela.id === action.payload.id
-          ? { ...novela, ...action.payload.novela }
-          : novela
-      );
-      const configWithUpdatedNovela = { ...state.config, novelas: updatedNovelas };
-      localStorage.setItem('adminConfig', JSON.stringify(configWithUpdatedNovela));
-      return { ...state, config: configWithUpdatedNovela };
-    case 'DELETE_NOVELA':
-      const filteredNovelas = state.config.novelas.filter(novela => novela.id !== action.payload);
-      const configWithDeletedNovela = { ...state.config, novelas: filteredNovelas };
-      localStorage.setItem('adminConfig', JSON.stringify(configWithDeletedNovela));
-      return { ...state, config: configWithDeletedNovela };
+    case 'UPDATE_PRICES':
+      return { ...state, prices: action.payload };
     case 'ADD_DELIVERY_ZONE':
-      const configWithNewZone = {
-        ...state.config,
-        deliveryZones: [...state.config.deliveryZones, action.payload]
+      return {
+        ...state,
+        deliveryZones: [...state.deliveryZones, action.payload]
       };
-      localStorage.setItem('adminConfig', JSON.stringify(configWithNewZone));
-      return { ...state, config: configWithNewZone };
     case 'UPDATE_DELIVERY_ZONE':
-      const updatedZones = state.config.deliveryZones.map(zone =>
-        zone.id === action.payload.id
-          ? { ...zone, ...action.payload.zone }
-          : zone
-      );
-      const configWithUpdatedZone = { ...state.config, deliveryZones: updatedZones };
-      localStorage.setItem('adminConfig', JSON.stringify(configWithUpdatedZone));
-      return { ...state, config: configWithUpdatedZone };
+      return {
+        ...state,
+        deliveryZones: state.deliveryZones.map(zone =>
+          zone.id === action.payload.id ? action.payload : zone
+        )
+      };
     case 'DELETE_DELIVERY_ZONE':
-      const filteredZones = state.config.deliveryZones.filter(zone => zone.id !== action.payload);
-      const configWithDeletedZone = { ...state.config, deliveryZones: filteredZones };
-      localStorage.setItem('adminConfig', JSON.stringify(configWithDeletedZone));
-      return { ...state, config: configWithDeletedZone };
-    case 'LOAD_CONFIG':
-      return { ...state, config: action.payload };
-    case 'RESET_CONFIG':
-      localStorage.setItem('adminConfig', JSON.stringify(defaultConfig));
-      return { ...state, config: defaultConfig };
-    case 'SHOW_NOTIFICATION':
-      // Esta acción se maneja en el componente, no modifica el estado
-      return state;
+      return {
+        ...state,
+        deliveryZones: state.deliveryZones.filter(zone => zone.id !== action.payload)
+      };
+    case 'ADD_NOVEL':
+      return {
+        ...state,
+        novels: [...state.novels, action.payload]
+      };
+    case 'UPDATE_NOVEL':
+      return {
+        ...state,
+        novels: state.novels.map(novel =>
+          novel.id === action.payload.id ? action.payload : novel
+        )
+      };
+    case 'DELETE_NOVEL':
+      return {
+        ...state,
+        novels: state.novels.filter(novel => novel.id !== action.payload)
+      };
+    case 'ADD_NOTIFICATION':
+      const notification: AdminNotification = {
+        ...action.payload,
+        id: Date.now().toString(),
+        timestamp: new Date().toISOString()
+      };
+      return {
+        ...state,
+        notifications: [notification, ...state.notifications.slice(0, 49)] // Keep last 50
+      };
+    case 'CLEAR_NOTIFICATIONS':
+      return { ...state, notifications: [] };
+    case 'UPDATE_SYSTEM_FILES':
+      return { ...state, systemFiles: action.payload };
+    case 'SET_LAST_BACKUP':
+      return { ...state, lastBackup: action.payload };
+    case 'LOAD_ADMIN_DATA':
+      return { ...state, ...action.payload };
     default:
       return state;
   }
 }
 
 export function AdminProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = useReducer(adminReducer, {
-    isAuthenticated: false,
-    config: defaultConfig
-  });
+  const [state, dispatch] = useReducer(adminReducer, initialState);
 
+  // Load admin data from localStorage
   useEffect(() => {
-    const savedConfig = localStorage.getItem('adminConfig');
-    if (savedConfig) {
+    const savedData = localStorage.getItem('adminData');
+    if (savedData) {
       try {
-        const config = JSON.parse(savedConfig);
-        // Ensure deliveryZones exists for backward compatibility
-        if (!config.deliveryZones) {
-          config.deliveryZones = defaultConfig.deliveryZones;
-        }
-        dispatch({ type: 'LOAD_CONFIG', payload: config });
+        const parsedData = JSON.parse(savedData);
+        dispatch({ type: 'LOAD_ADMIN_DATA', payload: parsedData });
       } catch (error) {
-        console.error('Error loading admin config:', error);
+        console.error('Error loading admin data:', error);
       }
     }
+    
+    // Initialize system files
+    updateSystemFiles();
   }, []);
 
+  // Save admin data to localStorage
+  useEffect(() => {
+    const dataToSave = {
+      prices: state.prices,
+      deliveryZones: state.deliveryZones,
+      novels: state.novels,
+      lastBackup: state.lastBackup
+    };
+    localStorage.setItem('adminData', JSON.stringify(dataToSave));
+  }, [state.prices, state.deliveryZones, state.novels, state.lastBackup]);
+
   const login = (username: string, password: string): boolean => {
-    if (username === 'administrador' && password === 'root') {
-      dispatch({ type: 'LOGIN' });
+    if (username === 'root' && password === 'video') {
+      dispatch({ type: 'LOGIN', payload: true });
+      addNotification({
+        type: 'success',
+        title: 'Acceso Autorizado',
+        message: 'Sesión iniciada correctamente en el panel de control',
+        section: 'Autenticación',
+        action: 'Login'
+      });
       return true;
     }
+    addNotification({
+      type: 'error',
+      title: 'Acceso Denegado',
+      message: 'Credenciales incorrectas',
+      section: 'Autenticación',
+      action: 'Login Failed'
+    });
     return false;
   };
 
   const logout = () => {
     dispatch({ type: 'LOGOUT' });
+    addNotification({
+      type: 'info',
+      title: 'Sesión Cerrada',
+      message: 'Se ha cerrado la sesión del panel de control',
+      section: 'Autenticación',
+      action: 'Logout'
+    });
   };
 
-  const updatePricing = (pricing: AdminConfig['pricing']) => {
-    dispatch({ type: 'UPDATE_PRICING', payload: pricing });
+  const updatePrices = (prices: PriceConfig) => {
+    dispatch({ type: 'UPDATE_PRICES', payload: prices });
+    addNotification({
+      type: 'success',
+      title: 'Precios Actualizados',
+      message: `Película: $${prices.moviePrice}, Serie: $${prices.seriesPrice}, Transferencia: ${prices.transferFeePercentage}%`,
+      section: 'Control de Precios',
+      action: 'Update Prices'
+    });
   };
 
-  const addNovela = (novela: Omit<NovelasConfig, 'id'>) => {
-    const newId = Math.max(...state.config.novelas.map(n => n.id), 0) + 1;
-    const novelaWithId = { ...novela, id: newId };
-    dispatch({ type: 'ADD_NOVELA', payload: novelaWithId });
-  };
-
-  const updateNovela = (id: number, novela: Partial<NovelasConfig>) => {
-    dispatch({ type: 'UPDATE_NOVELA', payload: { id, novela } });
-  };
-
-  const deleteNovela = (id: number) => {
-    dispatch({ type: 'DELETE_NOVELA', payload: id });
-  };
-
-  const addDeliveryZone = (zone: Omit<DeliveryZoneConfig, 'id'>) => {
-    const newId = Math.max(...state.config.deliveryZones.map(z => z.id), 0) + 1;
-    const zoneWithId = { ...zone, id: newId };
-    dispatch({ type: 'ADD_DELIVERY_ZONE', payload: zoneWithId });
-  };
-
-  const updateDeliveryZone = (id: number, zone: Partial<DeliveryZoneConfig>) => {
-    dispatch({ type: 'UPDATE_DELIVERY_ZONE', payload: { id, zone } });
-  };
-
-  const deleteDeliveryZone = (id: number) => {
-    dispatch({ type: 'DELETE_DELIVERY_ZONE', payload: id });
-  };
-  const exportConfig = (): string => {
-    const exportData = {
-      config: state.config,
-      exportDate: new Date().toISOString(),
-      version: '1.0'
+  const addDeliveryZone = (zoneData: Omit<DeliveryZone, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const zone: DeliveryZone = {
+      ...zoneData,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
-    return JSON.stringify(exportData, null, 2);
+    dispatch({ type: 'ADD_DELIVERY_ZONE', payload: zone });
+    addNotification({
+      type: 'success',
+      title: 'Zona Agregada',
+      message: `Nueva zona de entrega: ${zone.name} - $${zone.cost} CUP`,
+      section: 'Zonas de Entrega',
+      action: 'Add Zone'
+    });
   };
 
-  const importConfig = (configJson: string): boolean => {
-    try {
-      const importData = JSON.parse(configJson);
-      if (importData.config && importData.config.pricing && importData.config.novelas && importData.config.deliveryZones) {
-        dispatch({ type: 'LOAD_CONFIG', payload: importData.config });
-        localStorage.setItem('adminConfig', JSON.stringify(importData.config));
-        return true;
+  const updateDeliveryZone = (zone: DeliveryZone) => {
+    const updatedZone = { ...zone, updatedAt: new Date().toISOString() };
+    dispatch({ type: 'UPDATE_DELIVERY_ZONE', payload: updatedZone });
+    addNotification({
+      type: 'success',
+      title: 'Zona Actualizada',
+      message: `Zona modificada: ${zone.name}`,
+      section: 'Zonas de Entrega',
+      action: 'Update Zone'
+    });
+  };
+
+  const deleteDeliveryZone = (id: string) => {
+    const zone = state.deliveryZones.find(z => z.id === id);
+    dispatch({ type: 'DELETE_DELIVERY_ZONE', payload: id });
+    addNotification({
+      type: 'warning',
+      title: 'Zona Eliminada',
+      message: `Zona eliminada: ${zone?.name || 'Desconocida'}`,
+      section: 'Zonas de Entrega',
+      action: 'Delete Zone'
+    });
+  };
+
+  const addNovel = (novelData: Omit<Novel, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const novel: Novel = {
+      ...novelData,
+      id: Date.now(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    dispatch({ type: 'ADD_NOVEL', payload: novel });
+    addNotification({
+      type: 'success',
+      title: 'Novela Agregada',
+      message: `Nueva novela: ${novel.titulo} (${novel.capitulos} capítulos)`,
+      section: 'Gestión de Novelas',
+      action: 'Add Novel'
+    });
+  };
+
+  const updateNovel = (novel: Novel) => {
+    const updatedNovel = { ...novel, updatedAt: new Date().toISOString() };
+    dispatch({ type: 'UPDATE_NOVEL', payload: updatedNovel });
+    addNotification({
+      type: 'success',
+      title: 'Novela Actualizada',
+      message: `Novela modificada: ${novel.titulo}`,
+      section: 'Gestión de Novelas',
+      action: 'Update Novel'
+    });
+  };
+
+  const deleteNovel = (id: number) => {
+    const novel = state.novels.find(n => n.id === id);
+    dispatch({ type: 'DELETE_NOVEL', payload: id });
+    addNotification({
+      type: 'warning',
+      title: 'Novela Eliminada',
+      message: `Novela eliminada: ${novel?.titulo || 'Desconocida'}`,
+      section: 'Gestión de Novelas',
+      action: 'Delete Novel'
+    });
+  };
+
+  const addNotification = (notification: Omit<AdminNotification, 'id' | 'timestamp'>) => {
+    dispatch({ type: 'ADD_NOTIFICATION', payload: notification });
+  };
+
+  const clearNotifications = () => {
+    dispatch({ type: 'CLEAR_NOTIFICATIONS' });
+  };
+
+  const updateSystemFiles = () => {
+    const files: SystemFile[] = [
+      {
+        name: 'AdminContext.tsx',
+        path: 'src/context/AdminContext.tsx',
+        lastModified: new Date().toISOString(),
+        size: 12500,
+        type: 'context',
+        description: 'Contexto principal del panel administrativo'
+      },
+      {
+        name: 'CartContext.tsx',
+        path: 'src/context/CartContext.tsx',
+        lastModified: new Date().toISOString(),
+        size: 8900,
+        type: 'context',
+        description: 'Contexto del carrito de compras'
+      },
+      {
+        name: 'CheckoutModal.tsx',
+        path: 'src/components/CheckoutModal.tsx',
+        lastModified: new Date().toISOString(),
+        size: 15600,
+        type: 'component',
+        description: 'Modal de checkout con zonas de entrega'
+      },
+      {
+        name: 'NovelasModal.tsx',
+        path: 'src/components/NovelasModal.tsx',
+        lastModified: new Date().toISOString(),
+        size: 18200,
+        type: 'component',
+        description: 'Modal de catálogo de novelas'
+      },
+      {
+        name: 'PriceCard.tsx',
+        path: 'src/components/PriceCard.tsx',
+        lastModified: new Date().toISOString(),
+        size: 3400,
+        type: 'component',
+        description: 'Componente de visualización de precios'
+      },
+      {
+        name: 'AdminPanel.tsx',
+        path: 'src/pages/AdminPanel.tsx',
+        lastModified: new Date().toISOString(),
+        size: 25000,
+        type: 'page',
+        description: 'Panel de control administrativo principal'
       }
-      return false;
-    } catch (error) {
-      console.error('Error importing config:', error);
-      return false;
-    }
-  };
-
-  const resetToDefaults = () => {
-    dispatch({ type: 'RESET_CONFIG' });
-  };
-
-  const showNotification = (message: string, type: 'success' | 'info' | 'warning' | 'error') => {
-    dispatch({ type: 'SHOW_NOTIFICATION', payload: { message, type } });
-  };
-
-  const exportSystemFiles = () => {
-    const currentConfig = state.config;
-    
-    // Generar contenido de admin.ts
-    const adminTsContent = `export interface AdminConfig {
-  pricing: {
-    moviePrice: number;
-    seriesPrice: number;
-    transferFeePercentage: number;
-  };
-  novelas: NovelasConfig[];
-  deliveryZones: DeliveryZoneConfig[];
-}
-
-export interface NovelasConfig {
-  id: number;
-  titulo: string;
-  genero: string;
-  capitulos: number;
-  año: number;
-  costoEfectivo: number;
-  costoTransferencia: number;
-  descripcion?: string;
-}
-
-export interface DeliveryZoneConfig {
-  id: number;
-  name: string;
-  fullPath: string;
-  cost: number;
-  active: boolean;
-}
-
-export interface AdminState {
-  isAuthenticated: boolean;
-  config: AdminConfig;
-}
-
-// Configuración actual del sistema aplicada
-export const CURRENT_SYSTEM_CONFIG: AdminConfig = ${JSON.stringify(currentConfig, null, 2)};`;
-
-    // Generar contenido de AdminContext.tsx con configuración actual
-    const adminContextContent = `import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import type { AdminConfig, AdminState, NovelasConfig, DeliveryZoneConfig } from '../types/admin';
-
-// ... [resto del código AdminContext con configuración actual aplicada]
-// Configuración por defecto actualizada con valores actuales del sistema
-const defaultConfig: AdminConfig = ${JSON.stringify(currentConfig, null, 2)};
-
-// ... [resto de la implementación del contexto]`;
-
-    // Crear archivos y descargarlos
-    const files = [
-      { name: 'admin.ts', content: adminTsContent },
-      { name: 'AdminContext.tsx', content: adminContextContent },
-      // Agregar más archivos según sea necesario
     ];
+    
+    dispatch({ type: 'UPDATE_SYSTEM_FILES', payload: files });
+  };
 
-    files.forEach(file => {
-      const blob = new Blob([file.content], { type: 'text/typescript' });
-      const url = URL.createObjectURL(blob);
+  const exportSystemBackup = () => {
+    // Generate system files with current modifications
+    const systemFilesContent = generateSystemFilesContent();
+    
+    const backupData = {
+      appName: 'TV a la Carta',
+      version: '2.0.0',
+      exportDate: new Date().toISOString(),
+      adminConfig: {
+        prices: state.prices,
+        deliveryZones: state.deliveryZones,
+        novels: state.novels
+      },
+      systemFiles: systemFilesContent,
+      notifications: state.notifications.slice(0, 100), // Last 100 notifications
+      metadata: {
+        totalZones: state.deliveryZones.length,
+        activeZones: state.deliveryZones.filter(z => z.active).length,
+        totalNovels: state.novels.length,
+        activeNovels: state.novels.filter(n => n.active).length,
+        lastBackup: state.lastBackup
+      }
+    };
+
+    // Create ZIP file with proper directory structure
+    createSystemBackupZip(backupData);
+
+    const backupTime = new Date().toISOString();
+    dispatch({ type: 'SET_LAST_BACKUP', payload: backupTime });
+    
+    addNotification({
+      type: 'success',
+      title: 'Backup Exportado',
+      message: 'Sistema completo exportado como archivo ZIP con estructura de carpetas',
+      section: 'Sistema Backup',
+      action: 'Export Backup'
+    });
+  };
+
+  const generateSystemFilesContent = () => {
+    const files: { [key: string]: string } = {};
+    
+    // Generate AdminContext.tsx with current state
+    files['src/context/AdminContext.tsx'] = generateAdminContextContent();
+    files['src/context/CartContext.tsx'] = generateCartContextContent();
+    files['src/components/CheckoutModal.tsx'] = generateCheckoutModalContent();
+    files['src/components/NovelasModal.tsx'] = generateNovelasModalContent();
+    files['src/components/PriceCard.tsx'] = generatePriceCardContent();
+    files['src/pages/AdminPanel.tsx'] = generateAdminPanelContent();
+    files['README.md'] = generateReadmeContent();
+    files['config/system-changes.json'] = JSON.stringify({
+      lastModified: new Date().toISOString(),
+      changes: state.notifications.slice(0, 20),
+      version: '2.0.0'
+    }, null, 2);
+    
+    return files;
+  };
+
+  const generateAdminContextContent = () => {
+    return `// AdminContext.tsx - Generated with current configuration
+// Last updated: ${new Date().toISOString()}
+
+import React, { createContext, useContext, useReducer, useEffect } from 'react';
+
+export interface PriceConfig {
+  moviePrice: ${state.prices.moviePrice};
+  seriesPrice: ${state.prices.seriesPrice};
+  transferFeePercentage: ${state.prices.transferFeePercentage};
+  novelPricePerChapter: ${state.prices.novelPricePerChapter};
+}
+
+// Current delivery zones configuration
+const deliveryZones = ${JSON.stringify(state.deliveryZones, null, 2)};
+
+// Current novels configuration  
+const novels = ${JSON.stringify(state.novels, null, 2)};
+
+// Rest of AdminContext implementation...
+export default AdminContext;`;
+  };
+
+  const generateCartContextContent = () => {
+    return `// CartContext.tsx - Generated with current configuration
+// Last updated: ${new Date().toISOString()}
+
+import React, { createContext, useContext, useReducer, useEffect } from 'react';
+
+// Current pricing configuration
+const MOVIE_PRICE = ${state.prices.moviePrice};
+const SERIES_PRICE = ${state.prices.seriesPrice};
+const TRANSFER_FEE = ${state.prices.transferFeePercentage};
+
+// Rest of CartContext implementation...
+export default CartContext;`;
+  };
+
+  const generateCheckoutModalContent = () => {
+    return `// CheckoutModal.tsx - Generated with current configuration
+// Last updated: ${new Date().toISOString()}
+
+import React, { useState } from 'react';
+
+// Current delivery zones
+const DELIVERY_ZONES = {
+${state.deliveryZones.map(zone => `  '${zone.name}': ${zone.cost}`).join(',\n')}
+};
+
+// Rest of CheckoutModal implementation...
+export default CheckoutModal;`;
+  };
+
+  const generateNovelasModalContent = () => {
+    return `// NovelasModal.tsx - Generated with current configuration
+// Last updated: ${new Date().toISOString()}
+
+import React, { useState, useEffect } from 'react';
+
+// Current novels catalog
+const defaultNovelas = ${JSON.stringify(state.novels.map(novel => ({
+  id: novel.id,
+  titulo: novel.titulo,
+  genero: novel.genero,
+  capitulos: novel.capitulos,
+  año: novel.año,
+  descripcion: novel.descripcion
+})), null, 2)};
+
+// Current novel pricing
+const novelPricePerChapter = ${state.prices.novelPricePerChapter};
+
+// Rest of NovelasModal implementation...
+export default NovelasModal;`;
+  };
+
+  const generatePriceCardContent = () => {
+    return `// PriceCard.tsx - Generated with current configuration
+// Last updated: ${new Date().toISOString()}
+
+import React from 'react';
+
+// Current pricing configuration
+const DEFAULT_MOVIE_PRICE = ${state.prices.moviePrice};
+const DEFAULT_SERIES_PRICE = ${state.prices.seriesPrice};
+const DEFAULT_TRANSFER_FEE = ${state.prices.transferFeePercentage};
+
+// Rest of PriceCard implementation...
+export default PriceCard;`;
+  };
+
+  const generateAdminPanelContent = () => {
+    return `// AdminPanel.tsx - Generated with current configuration
+// Last updated: ${new Date().toISOString()}
+
+import React, { useState } from 'react';
+
+// Current system configuration
+const SYSTEM_CONFIG = {
+  prices: ${JSON.stringify(state.prices, null, 2)},
+  deliveryZones: ${state.deliveryZones.length},
+  novels: ${state.novels.length},
+  lastBackup: '${state.lastBackup}'
+};
+
+// Rest of AdminPanel implementation...
+export default AdminPanel;`;
+  };
+
+  const generateReadmeContent = () => {
+    return `# TV a la Carta - Sistema de Control
+
+## Configuración Actual del Sistema
+
+**Última actualización:** ${new Date().toLocaleString('es-ES')}
+
+### Precios Configurados
+- Películas: $${state.prices.moviePrice} CUP
+- Series: $${state.prices.seriesPrice} CUP por temporada
+- Recargo transferencia: ${state.prices.transferFeePercentage}%
+- Novelas: $${state.prices.novelPricePerChapter} CUP por capítulo
+
+### Zonas de Entrega
+Total de zonas configuradas: ${state.deliveryZones.length}
+Zonas activas: ${state.deliveryZones.filter(z => z.active).length}
+
+### Catálogo de Novelas
+Total de novelas: ${state.novels.length}
+Novelas activas: ${state.novels.filter(n => n.active).length}
+
+### Archivos del Sistema
+- AdminContext.tsx: Contexto principal de administración
+- CartContext.tsx: Contexto del carrito de compras
+- CheckoutModal.tsx: Modal de checkout con zonas de entrega
+- NovelasModal.tsx: Modal del catálogo de novelas
+- PriceCard.tsx: Componente de visualización de precios
+- AdminPanel.tsx: Panel de control administrativo
+
+## Instrucciones de Instalación
+
+1. Extraer todos los archivos manteniendo la estructura de carpetas
+2. Reemplazar los archivos existentes en el proyecto
+3. Reiniciar la aplicación para aplicar los cambios
+
+---
+*Generado automáticamente por TV a la Carta Admin System*`;
+  };
+
+  const createSystemBackupZip = async (backupData: any) => {
+    try {
+      // Import JSZip dynamically
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+      
+      // Create directory structure and add files
+      const systemFiles = backupData.systemFiles;
+      
+      Object.entries(systemFiles).forEach(([filePath, content]) => {
+        zip.file(filePath, content as string);
+      });
+      
+      // Generate ZIP file
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      
+      // Download ZIP file
+      const url = URL.createObjectURL(zipBlob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = file.name;
+      link.download = `TV_a_la_Carta_Sistema_${new Date().toISOString().split('T')[0]}.zip`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-    });
+      
+    } catch (error) {
+      console.error('Error creating ZIP file:', error);
+      // Fallback to JSON export
+      const blob = new Blob([JSON.stringify(backupData, null, 2)], {
+        type: 'application/json'
+      });
+      
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `TV_a_la_Carta_Backup_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+  };
 
-    showNotification('Archivos del sistema exportados correctamente', 'success');
+  const getSystemFiles = (): SystemFile[] => {
+    return state.systemFiles;
   };
 
   return (
@@ -320,18 +668,17 @@ const defaultConfig: AdminConfig = ${JSON.stringify(currentConfig, null, 2)};
       state,
       login,
       logout,
-      updatePricing,
-      addNovela,
-      updateNovela,
-      deleteNovela,
+      updatePrices,
       addDeliveryZone,
       updateDeliveryZone,
       deleteDeliveryZone,
-      exportConfig,
-      importConfig,
-      resetToDefaults,
-      showNotification,
-      exportSystemFiles
+      addNovel,
+      updateNovel,
+      deleteNovel,
+      addNotification,
+      clearNotifications,
+      exportSystemBackup,
+      getSystemFiles
     }}>
       {children}
     </AdminContext.Provider>

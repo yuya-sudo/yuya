@@ -31,7 +31,7 @@ export function Anime() {
           response = await tmdbService.getTopRatedAnime(pageNum);
           break;
         default:
-          response = await tmdbService.getPopularAnime(pageNum);
+          response = await tmdbService.getAnimeFromMultipleSources(pageNum);
       }
 
       // Remove duplicates to ensure fresh content

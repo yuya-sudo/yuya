@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { Toast } from '../components/Toast';
-import { useAdmin } from './AdminContext';
+import { useAdmin, AdminContext } from './AdminContext';
 import type { CartItem } from '../types/movie';
 
 interface SeriesCartItem extends CartItem {
@@ -90,6 +90,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(cartReducer, { items: [], total: 0 });
+  const adminContext = React.useContext(AdminContext);
   const [toast, setToast] = React.useState<{
     message: string;
     type: 'success' | 'error';
@@ -148,6 +149,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [state.items]);
 
   const addItem = (item: SeriesCartItem) => {
+    const price = calculateItemPrice(item);
     const itemWithDefaults = { 
       ...item, 
       paymentType: 'cash' as const,
@@ -204,21 +206,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const calculateItemPrice = (item: SeriesCartItem): number => {
-    // Get admin config for dynamic pricing
-    const adminConfig = JSON.parse(localStorage.getItem('adminConfig') || '{}');
-    const moviePrice = adminConfig.pricing?.moviePrice || 80;
-    const seriesPrice = adminConfig.pricing?.seriesPrice || 300;
-    const transferFeePercentage = adminConfig.pricing?.transferFeePercentage || 10;
-    
     const isAnime = item.original_language === 'ja' || 
                    (item.genre_ids && item.genre_ids.includes(16)) ||
                    item.title?.toLowerCase().includes('anime');
     
+    // Get prices from admin context if available
+    const moviePrice = adminContext?.state?.prices?.moviePrice || 80;
+    const seriesPrice = adminContext?.state?.prices?.seriesPrice || 300;
+    const transferFeePercentage = adminContext?.state?.prices?.transferFeePercentage || 10;
+    
     if (item.type === 'movie') {
-      const basePrice = moviePrice; // Use dynamic pricing
+      const basePrice = moviePrice;
       return item.paymentType === 'transfer' ? Math.round(basePrice * (1 + transferFeePercentage / 100)) : basePrice;
     } else {
-      // Series: Use dynamic pricing per season
+      // Series: precio dinámico por temporada
       const seasons = item.selectedSeasons?.length || 1;
       const basePrice = seasons * seriesPrice;
       return item.paymentType === 'transfer' ? Math.round(basePrice * (1 + transferFeePercentage / 100)) : basePrice;
@@ -232,11 +233,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const calculateTotalByPaymentType = (): { cash: number; transfer: number } => {
-    // Get admin config for dynamic pricing
-    const adminConfig = JSON.parse(localStorage.getItem('adminConfig') || '{}');
-    const moviePrice = adminConfig.pricing?.moviePrice || 80;
-    const seriesPrice = adminConfig.pricing?.seriesPrice || 300;
-    const transferFeePercentage = adminConfig.pricing?.transferFeePercentage || 10;
+    const moviePrice = adminContext?.state?.prices?.moviePrice || 80;
+    const seriesPrice = adminContext?.state?.prices?.seriesPrice || 300;
+    const transferFeePercentage = adminContext?.state?.prices?.transferFeePercentage || 10;
     
     return state.items.reduce((totals, item) => {
       const basePrice = item.type === 'movie' ? moviePrice : (item.selectedSeasons?.length || 1) * seriesPrice;
@@ -252,7 +251,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const closeToast = () => {
     setToast(prev => ({ ...prev, isVisible: false }));
   };
-  
   return (
     <CartContext.Provider value={{ 
       state, 

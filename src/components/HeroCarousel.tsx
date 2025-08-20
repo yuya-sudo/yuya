@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Star, Calendar, Play, Pause } from 'lucide-react';
 import { tmdbService } from '../services/tmdb';
+import { contentSyncService } from '../services/contentSync';
 import { IMAGE_BASE_URL, BACKDROP_SIZE } from '../config/api';
 import type { Movie, TVShow, Video } from '../types/movie';
 
@@ -21,9 +22,20 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
   // Cargar videos para cada item
   useEffect(() => {
     const loadVideos = async () => {
+      // First try to get cached videos
+      const cachedVideos: { [key: number]: Video[] } = {};
+      
       const videoPromises = items.map(async (item) => {
         try {
+          // Check cache first
           const isMovie = 'title' in item;
+          const cachedVideoData = contentSyncService?.getCachedVideos?.(item.id, isMovie ? 'movie' : 'tv');
+          
+          if (cachedVideoData && cachedVideoData.length > 0) {
+            return { id: item.id, videos: cachedVideoData };
+          }
+          
+          // Fallback to API call
           const videoData = isMovie 
             ? await tmdbService.getMovieVideos(item.id)
             : await tmdbService.getTVShowVideos(item.id);

@@ -1,12 +1,10 @@
-import { BASE_URL, API_OPTIONS, API_KEY } from '../config/api';
+import { BASE_URL, API_OPTIONS } from '../config/api';
 import type { Movie, TVShow, MovieDetails, TVShowDetails, Video, APIResponse, Genre, Cast, CastMember } from '../types/movie';
 
 class TMDBService {
   private async fetchData<T>(endpoint: string): Promise<T> {
     try {
-      const separator = endpoint.includes('?') ? '&' : '?';
-      const url = `${BASE_URL}${endpoint}${separator}api_key=${API_KEY}`;
-      const response = await fetch(url, API_OPTIONS);
+      const response = await fetch(`${BASE_URL}${endpoint}`, API_OPTIONS);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -14,6 +12,41 @@ class TMDBService {
     } catch (error) {
       console.error('API Error:', error);
       throw error;
+    }
+  }
+
+  // Enhanced video fetching with better filtering
+  private async getVideosWithFallback(endpoint: string): Promise<{ results: Video[] }> {
+    try {
+      // Try Spanish first
+      const spanishVideos = await this.fetchData<{ results: Video[] }>(`${endpoint}?language=es-ES`);
+      
+      // If no Spanish videos, try English
+      if (!spanishVideos.results || spanishVideos.results.length === 0) {
+        const englishVideos = await this.fetchData<{ results: Video[] }>(`${endpoint}?language=en-US`);
+        return englishVideos;
+      }
+      
+      // If Spanish videos exist but no trailers, combine with English
+      const spanishTrailers = spanishVideos.results.filter(
+        video => video.site === 'YouTube' && (video.type === 'Trailer' || video.type === 'Teaser')
+      );
+      
+      if (spanishTrailers.length === 0) {
+        const englishVideos = await this.fetchData<{ results: Video[] }>(`${endpoint}?language=en-US`);
+        const englishTrailers = englishVideos.results.filter(
+          video => video.site === 'YouTube' && (video.type === 'Trailer' || video.type === 'Teaser')
+        );
+        
+        return {
+          results: [...spanishVideos.results, ...englishTrailers]
+        };
+      }
+      
+      return spanishVideos;
+    } catch (error) {
+      console.error('Error fetching videos:', error);
+      return { results: [] };
     }
   }
 
@@ -40,7 +73,7 @@ class TMDBService {
   }
 
   async getMovieVideos(id: number): Promise<{ results: Video[] }> {
-    return this.fetchData(`/movie/${id}/videos?language=es-ES`);
+    return this.getVideosWithFallback(`/movie/${id}/videos`);
   }
 
   async getMovieCredits(id: number): Promise<Cast> {
@@ -66,7 +99,7 @@ class TMDBService {
   }
 
   async getTVShowVideos(id: number): Promise<{ results: Video[] }> {
-    return this.fetchData(`/tv/${id}/videos?language=es-ES`);
+    return this.getVideosWithFallback(`/tv/${id}/videos`);
   }
 
   async getTVShowCredits(id: number): Promise<Cast> {
@@ -85,6 +118,37 @@ class TMDBService {
   async searchAnime(query: string, page: number = 1): Promise<APIResponse<TVShow>> {
     const encodedQuery = encodeURIComponent(query);
     return this.fetchData(`/search/tv?query=${encodedQuery}&language=es-ES&page=${page}&with_genres=16&with_origin_country=JP`);
+  }
+
+  // Enhanced anime discovery with multiple sources
+  async getAnimeFromMultipleSources(page: number = 1): Promise<APIResponse<TVShow>> {
+    try {
+      const [japaneseAnime, animationGenre, koreanAnimation] = await Promise.all([
+        this.fetchData<APIResponse<TVShow>>(`/discover/tv?with_origin_country=JP&with_genres=16&language=es-ES&page=${page}&sort_by=popularity.desc&include_adult=false`),
+        this.fetchData<APIResponse<TVShow>>(`/discover/tv?with_genres=16&language=es-ES&page=${page}&sort_by=popularity.desc&include_adult=false`),
+        this.fetchData<APIResponse<TVShow>>(`/discover/tv?with_origin_country=KR&with_genres=16&language=es-ES&page=${page}&sort_by=popularity.desc&include_adult=false`)
+      ]);
+
+      // Combine and remove duplicates
+      const combinedResults = [
+        ...japaneseAnime.results,
+        ...animationGenre.results.filter(item => 
+          !japaneseAnime.results.some(jp => jp.id === item.id)
+        ),
+        ...koreanAnimation.results.filter(item => 
+          !japaneseAnime.results.some(jp => jp.id === item.id) &&
+          !animationGenre.results.some(an => an.id === item.id)
+        )
+      ];
+
+      return {
+        ...japaneseAnime,
+        results: this.removeDuplicates(combinedResults)
+      };
+    } catch (error) {
+      console.error('Error fetching anime from multiple sources:', error);
+      return this.getPopularAnime(page);
+    }
   }
 
   // Genres
@@ -113,6 +177,39 @@ class TMDBService {
 
   async getTrendingTV(timeWindow: 'day' | 'week' = 'day', page: number = 1): Promise<APIResponse<TVShow>> {
     return this.fetchData(`/trending/tv/${timeWindow}?language=es-ES&page=${page}`);
+  }
+
+  // Enhanced content discovery methods
+  async getDiscoverMovies(params: {
+    genre?: number;
+    year?: number;
+    sortBy?: string;
+    page?: number;
+  } = {}): Promise<APIResponse<Movie>> {
+    const { genre, year, sortBy = 'popularity.desc', page = 1 } = params;
+    let endpoint = `/discover/movie?language=es-ES&page=${page}&sort_by=${sortBy}&include_adult=false`;
+    
+    if (genre) endpoint += `&with_genres=${genre}`;
+    if (year) endpoint += `&year=${year}`;
+    
+    return this.fetchData(endpoint);
+  }
+
+  async getDiscoverTVShows(params: {
+    genre?: number;
+    year?: number;
+    sortBy?: string;
+    page?: number;
+    country?: string;
+  } = {}): Promise<APIResponse<TVShow>> {
+    const { genre, year, sortBy = 'popularity.desc', page = 1, country } = params;
+    let endpoint = `/discover/tv?language=es-ES&page=${page}&sort_by=${sortBy}&include_adult=false`;
+    
+    if (genre) endpoint += `&with_genres=${genre}`;
+    if (year) endpoint += `&first_air_date_year=${year}`;
+    if (country) endpoint += `&with_origin_country=${country}`;
+    
+    return this.fetchData(endpoint);
   }
 
   // Utility method to remove duplicates from combined results
@@ -150,6 +247,99 @@ class TMDBService {
     } catch (error) {
       console.error('Error fetching hero content:', error);
       return [];
+    }
+  }
+
+  // Batch fetch videos for multiple items
+  async batchFetchVideos(items: { id: number; type: 'movie' | 'tv' }[]): Promise<Map<string, Video[]>> {
+    const videoMap = new Map<string, Video[]>();
+    
+    try {
+      const videoPromises = items.map(async (item) => {
+        const key = `${item.type}-${item.id}`;
+        try {
+          const videos = item.type === 'movie' 
+            ? await this.getMovieVideos(item.id)
+            : await this.getTVShowVideos(item.id);
+          
+          const trailers = videos.results.filter(
+            video => video.site === 'YouTube' && (video.type === 'Trailer' || video.type === 'Teaser')
+          );
+          
+          return { key, videos: trailers };
+        } catch (error) {
+          console.error(`Error fetching videos for ${key}:`, error);
+          return { key, videos: [] };
+        }
+      });
+
+      const results = await Promise.all(videoPromises);
+      results.forEach(({ key, videos }) => {
+        videoMap.set(key, videos);
+      });
+    } catch (error) {
+      console.error('Error in batch fetch videos:', error);
+    }
+    
+    return videoMap;
+  }
+
+  // Enhanced sync method for better content freshness
+  async syncAllContent(): Promise<{
+    movies: Movie[];
+    tvShows: TVShow[];
+    anime: TVShow[];
+    trending: (Movie | TVShow)[];
+  }> {
+    try {
+      const [
+        popularMovies,
+        topRatedMovies,
+        upcomingMovies,
+        popularTV,
+        topRatedTV,
+        popularAnime,
+        topRatedAnime,
+        trendingDay,
+        trendingWeek
+      ] = await Promise.all([
+        this.getPopularMovies(1),
+        this.getTopRatedMovies(1),
+        this.getUpcomingMovies(1),
+        this.getPopularTVShows(1),
+        this.getTopRatedTVShows(1),
+        this.getAnimeFromMultipleSources(1),
+        this.getTopRatedAnime(1),
+        this.getTrendingAll('day', 1),
+        this.getTrendingAll('week', 1)
+      ]);
+
+      // Combine and deduplicate content
+      const movies = this.removeDuplicates([
+        ...popularMovies.results,
+        ...topRatedMovies.results,
+        ...upcomingMovies.results
+      ]);
+
+      const tvShows = this.removeDuplicates([
+        ...popularTV.results,
+        ...topRatedTV.results
+      ]);
+
+      const anime = this.removeDuplicates([
+        ...popularAnime.results,
+        ...topRatedAnime.results
+      ]);
+
+      const trending = this.removeDuplicates([
+        ...trendingDay.results,
+        ...trendingWeek.results
+      ]);
+
+      return { movies, tvShows, anime, trending };
+    } catch (error) {
+      console.error('Error syncing all content:', error);
+      return { movies: [], tvShows: [], anime: [], trending: [] };
     }
   }
 }

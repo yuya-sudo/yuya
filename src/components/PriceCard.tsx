@@ -1,5 +1,6 @@
 import React from 'react';
 import { DollarSign, Tv, Film, Star, CreditCard } from 'lucide-react';
+import { useAdmin, AdminContext } from '../context/AdminContext';
 
 interface PriceCardProps {
   type: 'movie' | 'tv';
@@ -9,30 +10,28 @@ interface PriceCardProps {
 }
 
 export function PriceCard({ type, selectedSeasons = [], episodeCount = 0, isAnime = false }: PriceCardProps) {
+  const adminContext = React.useContext(AdminContext);
+  
+  // Get prices from admin context if available
+  const moviePrice = adminContext?.state?.prices?.moviePrice || 80;
+  const seriesPrice = adminContext?.state?.prices?.seriesPrice || 300;
+  const transferFeePercentage = adminContext?.state?.prices?.transferFeePercentage || 10;
+  
   const calculatePrice = () => {
-    // Get admin config for dynamic pricing
-    const adminConfig = JSON.parse(localStorage.getItem('adminConfig') || '{}');
-    const moviePrice = adminConfig.pricing?.moviePrice || 80;
-    const seriesPrice = adminConfig.pricing?.seriesPrice || 300;
-    
     if (type === 'movie') {
-      return moviePrice; // Use dynamic pricing
+      return moviePrice;
     } else {
-      // Series: Use dynamic pricing per season
+      // Series: precio dinámico por temporada
       if (isAnime) {
-        return selectedSeasons.length * seriesPrice; // Anime por temporada
+        return selectedSeasons.length * seriesPrice;
       } else {
         return selectedSeasons.length * seriesPrice;
       }
     }
   };
 
-  // Get transfer fee percentage from admin config
-  const adminConfig = JSON.parse(localStorage.getItem('adminConfig') || '{}');
-  const transferFeePercentage = adminConfig.pricing?.transferFeePercentage || 10;
-  
   const price = calculatePrice();
-  const transferPrice = Math.round(price * (1 + transferFeePercentage / 100)); // Precio con recargo dinámico
+  const transferPrice = Math.round(price * (1 + transferFeePercentage / 100));
   
   const getIcon = () => {
     if (type === 'movie') {
@@ -96,7 +95,7 @@ export function PriceCard({ type, selectedSeasons = [], episodeCount = 0, isAnim
             </span>
           </div>
           <div className="text-xs text-orange-600">
-            +{transferFeePercentage}% recargo bancario
+            +10% recargo bancario
           </div>
         </div>
         

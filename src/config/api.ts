@@ -9,7 +9,8 @@ export const BACKDROP_SIZE = 'w1280';
 export const API_OPTIONS = {
   method: 'GET',
   headers: {
-    accept: 'application/json'
+    accept: 'application/json',
+    Authorization: `Bearer ${ACCESS_TOKEN}`
   }
 };
 

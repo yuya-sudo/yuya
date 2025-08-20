@@ -1,21 +1,15 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, Trash2, Star, Calendar, MessageCircle, ArrowLeft, Edit3, Tv, DollarSign, CreditCard, Calculator, Settings } from 'lucide-react';
+import { ShoppingCart, Trash2, Star, Calendar, MessageCircle, ArrowLeft, Edit3, Tv, DollarSign, CreditCard, Calculator } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { useAdmin } from '../context/AdminContext';
 import { PriceCard } from '../components/PriceCard';
 import { CheckoutModal, OrderData, CustomerInfo } from '../components/CheckoutModal';
-import { AdminLogin } from '../components/AdminLogin';
-import { AdminPanel } from '../components/AdminPanel';
 import { sendOrderToWhatsApp } from '../utils/whatsapp';
 import { IMAGE_BASE_URL, POSTER_SIZE } from '../config/api';
 
 export function Cart() {
-  const { state: cartState, removeItem, clearCart, updatePaymentType, calculateItemPrice, calculateTotalPrice, calculateTotalByPaymentType } = useCart();
-  const { state: adminState } = useAdmin();
+  const { state, removeItem, clearCart, updatePaymentType, calculateItemPrice, calculateTotalPrice, calculateTotalByPaymentType } = useCart();
   const [showCheckoutModal, setShowCheckoutModal] = React.useState(false);
-  const [showAdminLogin, setShowAdminLogin] = React.useState(false);
-  const [showAdminPanel, setShowAdminPanel] = React.useState(false);
 
   const handleCheckout = (orderData: OrderData) => {
     // Calculate totals
@@ -27,7 +21,7 @@ export function Cart() {
     // Complete the order data with cart information
     const completeOrderData: OrderData = {
       ...orderData,
-      items: cartState.items,
+      items: state.items,
       subtotal,
       transferFee,
       total,
@@ -37,11 +31,6 @@ export function Cart() {
     
     sendOrderToWhatsApp(completeOrderData);
     setShowCheckoutModal(false);
-  };
-
-  const handleAdminLoginSuccess = () => {
-    setShowAdminLogin(false);
-    setShowAdminPanel(true);
   };
 
   const getItemUrl = (item: any) => {
@@ -67,11 +56,11 @@ export function Cart() {
 
   const totalPrice = calculateTotalPrice();
   const totalsByPaymentType = calculateTotalByPaymentType();
-  const movieCount = cartState.items.filter(item => item.type === 'movie').length;
-  const seriesCount = cartState.items.filter(item => item.type === 'tv').length;
-  const animeCount = cartState.items.filter(item => isAnime(item)).length;
+  const movieCount = state.items.filter(item => item.type === 'movie').length;
+  const seriesCount = state.items.filter(item => item.type === 'tv').length;
+  const animeCount = state.items.filter(item => isAnime(item)).length;
 
-  if (cartState.items.length === 0) {
+  if (state.items.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="text-center max-w-md w-full">
@@ -99,30 +88,15 @@ export function Cart() {
             >
               Descubrir Anime
             </Link>
-            <button
-              onClick={() => setShowAdminLogin(true)}
-              className="w-full bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white px-6 py-3 rounded-lg font-medium transition-colors text-center flex items-center justify-center"
+            <Link
+              to="/admin"
+              className="w-full bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition-colors text-center flex items-center justify-center"
             >
-              <Settings className="h-5 w-5 mr-2" />
+              <span className="mr-2">⚙️</span>
               Panel de Control
-            </button>
+            </Link>
           </div>
         </div>
-        
-        {/* Admin Login Modal */}
-        <AdminLogin
-          isOpen={showAdminLogin}
-          onClose={() => setShowAdminLogin(false)}
-          onSuccess={handleAdminLoginSuccess}
-        />
-        
-        {/* Admin Panel */}
-        {adminState.isAuthenticated && (
-          <AdminPanel
-            isOpen={showAdminPanel}
-            onClose={() => setShowAdminPanel(false)}
-          />
-        )}
       </div>
     );
   }
@@ -134,7 +108,7 @@ export function Cart() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 sm:mb-8 space-y-4 sm:space-y-0">
           <div className="flex items-center justify-center sm:justify-start">
             <ShoppingCart className="mr-2 sm:mr-3 h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Mi Carrito ({cartState.total})</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Mi Carrito</h1>
           </div>
           <Link
             to="/"
@@ -150,7 +124,7 @@ export function Cart() {
           <div className="p-6 border-b border-gray-200">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
               <h2 className="text-lg sm:text-xl font-semibold text-gray-900 text-center sm:text-left">
-                Elementos ({cartState.total})
+                Elementos ({state.total})
               </h2>
               <button
                 onClick={clearCart}
@@ -162,7 +136,7 @@ export function Cart() {
           </div>
 
           <div className="divide-y divide-gray-200">
-            {cartState.items.map((item) => (
+            {state.items.map((item) => (
               <div key={`${item.type}-${item.id}`} className="p-4 sm:p-6 hover:bg-gray-50 transition-colors">
                 <div className="flex flex-col sm:flex-row sm:items-start space-y-4 sm:space-y-0 sm:space-x-4">
                   {/* Poster */}
@@ -301,7 +275,7 @@ export function Cart() {
               </h3>
               <div className="text-center sm:text-right">
                 <div className="text-2xl sm:text-3xl font-bold">${totalPrice.toLocaleString()} CUP</div>
-                <div className="text-sm opacity-90">{cartState.total} elementos</div>
+                <div className="text-sm opacity-90">{state.total} elementos</div>
               </div>
             </div>
           </div>
@@ -325,7 +299,7 @@ export function Cart() {
                       ${totalsByPaymentType.cash.toLocaleString()} CUP
                     </div>
                     <div className="text-sm text-green-600">
-                      {cartState.items.filter(item => item.paymentType === 'cash').length} elementos
+                      {state.items.filter(item => item.paymentType === 'cash').length} elementos
                     </div>
                   </div>
                 </div>
@@ -340,7 +314,7 @@ export function Cart() {
                       ${totalsByPaymentType.transfer.toLocaleString()} CUP
                     </div>
                     <div className="text-sm text-orange-600">
-                      {cartState.items.filter(item => item.paymentType === 'transfer').length} elementos (+10%)
+                      {state.items.filter(item => item.paymentType === 'transfer').length} elementos (+10%)
                     </div>
                   </div>
                 </div>
@@ -362,7 +336,7 @@ export function Cart() {
               </h4>
               
               <div className="space-y-3 max-h-64 overflow-y-auto">
-                {cartState.items.map((item) => {
+                {state.items.map((item) => {
                   const itemPrice = calculateItemPrice(item);
                   const basePrice = item.type === 'movie' ? 80 : (item.selectedSeasons?.length || 1) * 300;
                   return (
@@ -465,8 +439,8 @@ export function Cart() {
                   <div className="flex items-center">
                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
                     <span className="font-medium">
-                      {cartState.items.length > 0 
-                        ? (cartState.items.reduce((acc, item) => acc + item.vote_average, 0) / cartState.items.length).toFixed(1)
+                      {state.items.length > 0 
+                        ? (state.items.reduce((acc, item) => acc + item.vote_average, 0) / state.items.length).toFixed(1)
                         : '0.0'
                       }
                     </span>
@@ -475,8 +449,8 @@ export function Cart() {
                 <div className="flex flex-col sm:flex-row justify-between items-center space-y-1 sm:space-y-0">
                   <span className="text-gray-600">Contenido más reciente:</span>
                   <span className="font-medium">
-                    {cartState.items.length > 0 
-                      ? Math.max(...cartState.items.map(item => {
+                    {state.items.length > 0 
+                      ? Math.max(...state.items.map(item => {
                           const date = item.release_date || item.first_air_date;
                           return date ? new Date(date).getFullYear() : 0;
                         }))
@@ -510,7 +484,7 @@ export function Cart() {
           isOpen={showCheckoutModal}
           onClose={() => setShowCheckoutModal(false)}
           onCheckout={handleCheckout}
-          items={cartState.items.map(item => ({
+          items={state.items.map(item => ({
             id: item.id,
             title: item.title,
             price: calculateItemPrice(item),
@@ -518,21 +492,6 @@ export function Cart() {
           }))}
           total={totalPrice}
         />
-        
-        {/* Admin Login Modal */}
-        <AdminLogin
-          isOpen={showAdminLogin}
-          onClose={() => setShowAdminLogin(false)}
-          onSuccess={handleAdminLoginSuccess}
-        />
-        
-        {/* Admin Panel */}
-        {adminState.isAuthenticated && (
-          <AdminPanel
-            isOpen={showAdminPanel}
-            onClose={() => setShowAdminPanel(false)}
-          />
-        )}
       </div>
     </div>
   );

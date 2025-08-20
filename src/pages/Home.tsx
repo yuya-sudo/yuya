@@ -61,7 +61,7 @@ export function Home() {
       const [moviesRes, tvRes, animeRes] = await Promise.all([
         tmdbService.getPopularMovies(1),
         tmdbService.getPopularTVShows(1),
-        tmdbService.getPopularAnime(1)
+        tmdbService.getAnimeFromMultipleSources(1)
       ]);
 
       // Filter out duplicates
