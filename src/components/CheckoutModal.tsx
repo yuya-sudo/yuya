@@ -29,33 +29,6 @@ interface CheckoutModalProps {
   total: number;
 }
 
-// Zonas de entrega con costos - sincronizadas con el panel de control
-const DELIVERY_ZONES = {
-  'Por favor seleccionar su Barrio/Zona': 0,
-  'Santiago de Cuba > Santiago de Cuba > Nuevo Vista Alegre': 100,
-  'Santiago de Cuba > Santiago de Cuba > Vista Alegre': 300,
-  'Santiago de Cuba > Santiago de Cuba > Reparto Sueño': 250,
-  'Santiago de Cuba > Santiago de Cuba > San Pedrito': 150,
-  'Santiago de Cuba > Santiago de Cuba > Altamira': 300,
-  'Santiago de Cuba > Santiago de Cuba > Micro 7, 8 , 9': 150,
-  'Santiago de Cuba > Santiago de Cuba > Alameda': 150,
-  'Santiago de Cuba > Santiago de Cuba > El Caney': 800,
-  'Santiago de Cuba > Santiago de Cuba > Quintero': 200,
-  'Santiago de Cuba > Santiago de Cuba > Marimon': 100,
-  'Santiago de Cuba > Santiago de Cuba > Los cangrejitos': 150,
-  'Santiago de Cuba > Santiago de Cuba > Trocha': 200,
-  'Santiago de Cuba > Santiago de Cuba > Versalles': 800,
-  'Santiago de Cuba > Santiago de Cuba > Reparto Portuondo': 600,
-  'Santiago de Cuba > Santiago de Cuba > 30 de Noviembre': 600,
-  'Santiago de Cuba > Santiago de Cuba > Rajayoga': 800,
-  'Santiago de Cuba > Santiago de Cuba > Antonio Maceo': 600,
-  'Santiago de Cuba > Santiago de Cuba > Los Pinos': 200,
-  'Santiago de Cuba > Santiago de Cuba > Distrito José Martí': 100,
-  'Santiago de Cuba > Santiago de Cuba > Cobre': 800,
-  'Santiago de Cuba > Santiago de Cuba > El Parque Céspedes': 200,
-  'Santiago de Cuba > Santiago de Cuba > Carretera del Morro': 300,
-};
-
 export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: CheckoutModalProps) {
   const adminContext = React.useContext(AdminContext);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
@@ -70,19 +43,47 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
   const [generatedOrder, setGeneratedOrder] = useState('');
   const [copied, setCopied] = useState(false);
 
-  // Get delivery zones from admin context if available
+  // Zonas de entrega base
+  const DEFAULT_DELIVERY_ZONES = {
+    'Por favor seleccionar su Barrio/Zona': 0,
+    'Santiago de Cuba > Santiago de Cuba > Nuevo Vista Alegre': 100,
+    'Santiago de Cuba > Santiago de Cuba > Vista Alegre': 300,
+    'Santiago de Cuba > Santiago de Cuba > Reparto Sueño': 250,
+    'Santiago de Cuba > Santiago de Cuba > San Pedrito': 150,
+    'Santiago de Cuba > Santiago de Cuba > Altamira': 300,
+    'Santiago de Cuba > Santiago de Cuba > Micro 7, 8 , 9': 150,
+    'Santiago de Cuba > Santiago de Cuba > Alameda': 150,
+    'Santiago de Cuba > Santiago de Cuba > El Caney': 800,
+    'Santiago de Cuba > Santiago de Cuba > Quintero': 200,
+    'Santiago de Cuba > Santiago de Cuba > Marimon': 100,
+    'Santiago de Cuba > Santiago de Cuba > Los cangrejitos': 150,
+    'Santiago de Cuba > Santiago de Cuba > Trocha': 200,
+    'Santiago de Cuba > Santiago de Cuba > Versalles': 800,
+    'Santiago de Cuba > Santiago de Cuba > Reparto Portuondo': 600,
+    'Santiago de Cuba > Santiago de Cuba > 30 de Noviembre': 600,
+    'Santiago de Cuba > Santiago de Cuba > Rajayoga': 800,
+    'Santiago de Cuba > Santiago de Cuba > Antonio Maceo': 600,
+    'Santiago de Cuba > Santiago de Cuba > Los Pinos': 200,
+    'Santiago de Cuba > Santiago de Cuba > Distrito José Martí': 100,
+    'Santiago de Cuba > Santiago de Cuba > Cobre': 800,
+    'Santiago de Cuba > Santiago de Cuba > El Parque Céspedes': 200,
+    'Santiago de Cuba > Santiago de Cuba > Carretera del Morro': 300,
+  };
+
+  // Obtener zonas sincronizadas desde el contexto admin
   const adminZones = adminContext?.state?.deliveryZones || [];
   const adminZonesMap = adminZones.reduce((acc, zone) => {
-    acc[zone.name] = zone.cost;
+    if (zone.active) {
+      acc[zone.name] = zone.cost;
+    }
     return acc;
   }, {} as { [key: string]: number });
   
-  // Combine admin zones with default zones
-  const allZones = { ...DELIVERY_ZONES, ...adminZonesMap };
+  // Combinar zonas por defecto con zonas del admin
+  const allZones = { ...DEFAULT_DELIVERY_ZONES, ...adminZonesMap };
   const deliveryCost = allZones[deliveryZone as keyof typeof allZones] || 0;
   const finalTotal = total + deliveryCost;
 
-  // Validar si todos los campos requeridos están completos incluyendo la zona de entrega
   const isFormValid = customerInfo.fullName.trim() !== '' && 
                      customerInfo.phone.trim() !== '' && 
                      customerInfo.address.trim() !== '' &&
@@ -106,7 +107,7 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
     const cashItems = items.filter(item => item.paymentType === 'cash');
     const transferItems = items.filter(item => item.paymentType === 'transfer');
     
-    // Get current transfer fee percentage from admin context
+    // Obtener porcentaje sincronizado desde el contexto admin
     const transferFeePercentage = adminContext?.state?.prices?.transferFeePercentage || 10;
     const moviePrice = adminContext?.state?.prices?.moviePrice || 80;
     const seriesPrice = adminContext?.state?.prices?.seriesPrice || 300;
@@ -136,7 +137,6 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
       return sum + basePrice;
     }, 0);
 
-    // Formatear lista de productos
     const itemsList = items
       .map(item => {
         const seasonInfo = item.selectedSeasons && item.selectedSeasons.length > 0 
@@ -257,7 +257,6 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
       <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[95vh] overflow-hidden shadow-2xl">
-        {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4 sm:p-6 text-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
@@ -280,7 +279,6 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
 
         <div className="overflow-y-auto max-h-[calc(95vh-120px)]">
           <div className="p-4 sm:p-6">
-            {/* Order Summary */}
             <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-4 sm:p-6 mb-6 border border-blue-200">
               <div className="flex items-center mb-4">
                 <Calculator className="h-6 w-6 text-blue-600 mr-3" />
@@ -323,7 +321,6 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
 
             {!orderGenerated ? (
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Customer Information */}
                 <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-sm">
                   <h3 className="text-lg sm:text-xl font-bold mb-4 flex items-center text-gray-900">
                     <User className="h-5 w-5 mr-3 text-blue-600" />
@@ -375,7 +372,6 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
                   </div>
                 </div>
 
-                {/* Delivery Zone */}
                 <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-sm">
                   <h3 className="text-lg sm:text-xl font-bold mb-4 flex items-center text-gray-900">
                     <MapPin className="h-5 w-5 mr-3 text-green-600" />
@@ -454,7 +450,6 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
                   </div>
                 </div>
 
-                {/* Action Buttons */}
                 <div className="flex flex-col sm:flex-row gap-3 pt-4">
                   <button
                     type="button"
@@ -495,7 +490,6 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
                 </div>
               </form>
             ) : (
-              /* Generated Order Display */
               <div className="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-sm">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 space-y-2 sm:space-y-0">
                   <h3 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center">

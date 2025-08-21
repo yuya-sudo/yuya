@@ -29,12 +29,12 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
   const [sortBy, setSortBy] = useState<'titulo' | 'año' | 'capitulos'>('titulo');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
-  // Get novels and prices from admin context if available - sincronizado en tiempo real
+  // Obtener novelas y precios sincronizados desde el contexto admin
   const adminNovels = adminContext?.state?.novels || [];
   const novelPricePerChapter = adminContext?.state?.prices?.novelPricePerChapter || 5;
   const transferFeePercentage = adminContext?.state?.prices?.transferFeePercentage || 10;
   
-  // Lista de novelas basada en el documento - sincronizada con el panel de control
+  // Lista de novelas por defecto
   const defaultNovelas: Novela[] = [
     { id: 1, titulo: "Corazón Salvaje", genero: "Drama/Romance", capitulos: 185, año: 2009 },
     { id: 2, titulo: "La Usurpadora", genero: "Drama/Melodrama", capitulos: 98, año: 1998 },
@@ -88,8 +88,8 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
     { id: 50, titulo: "La Herencia", genero: "Drama/Romance", capitulos: 74, año: 2022 }
   ];
 
-  // Combine admin novels with default novels
-  const allNovelas = [...defaultNovelas, ...adminNovels.map(novel => ({
+  // Combinar novelas por defecto con novelas del admin
+  const allNovelas = [...defaultNovelas, ...adminNovels.filter(novel => novel.active).map(novel => ({
     id: novel.id,
     titulo: novel.titulo,
     genero: novel.genero,
@@ -100,13 +100,9 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
 
   const phoneNumber = '+5354690878';
 
-  // Obtener géneros únicos
   const uniqueGenres = [...new Set(allNovelas.map(novela => novela.genero))].sort();
-  
-  // Obtener años únicos
   const uniqueYears = [...new Set(allNovelas.map(novela => novela.año))].sort((a, b) => b - a);
 
-  // Función para filtrar novelas
   const getFilteredNovelas = () => {
     let filtered = novelasWithPayment.filter(novela => {
       const matchesSearch = novela.titulo.toLowerCase().includes(searchTerm.toLowerCase());
@@ -116,7 +112,6 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
       return matchesSearch && matchesGenre && matchesYear;
     });
 
-    // Ordenar resultados
     filtered.sort((a, b) => {
       let comparison = 0;
       
@@ -140,7 +135,6 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
 
   const filteredNovelas = getFilteredNovelas();
 
-  // Inicializar novelas con tipo de pago por defecto
   useEffect(() => {
     const novelasWithDefaultPayment = allNovelas.map(novela => ({
       ...novela,
@@ -185,7 +179,6 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
     setSortOrder('asc');
   };
 
-  // Calcular totales por tipo de pago - usando porcentaje sincronizado
   const calculateTotals = () => {
     const selectedNovelasData = novelasWithPayment.filter(n => selectedNovelas.includes(n.id));
     
@@ -221,7 +214,6 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
     listText += "📱 Contacto: +5354690878\n\n";
     listText += "═══════════════════════════════════\n\n";
     
-    // Separar novelas por tipo de pago para mostrar cálculos
     listText += "💵 PRECIOS EN EFECTIVO:\n";
     listText += "═══════════════════════════════════\n\n";
     
@@ -303,7 +295,6 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
     
     let message = "Me interesan los siguientes títulos:\n\n";
     
-    // Novelas en efectivo
     if (cashNovelas.length > 0) {
       message += "💵 PAGO EN EFECTIVO:\n";
       message += "═══════════════════════════════════\n";
@@ -318,7 +309,6 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
       message += `📊 Total capítulos: ${cashNovelas.reduce((sum, n) => sum + n.capitulos, 0)}\n\n`;
     }
     
-    // Novelas por transferencia
     if (transferNovelas.length > 0) {
       message += `🏦 PAGO POR TRANSFERENCIA BANCARIA (+${transferFeePercentage}%):\n`;
       message += "═══════════════════════════════════\n";
@@ -340,7 +330,6 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
       message += `📊 Total capítulos: ${transferNovelas.reduce((sum, n) => sum + n.capitulos, 0)}\n\n`;
     }
     
-    // Resumen final
     message += "📊 RESUMEN FINAL:\n";
     message += "═══════════════════════════════════\n";
     message += `• Total de novelas: ${selectedNovelas.length}\n`;
@@ -376,7 +365,6 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[95vh] overflow-hidden shadow-2xl animate-in fade-in duration-300">
-        {/* Header */}
         <div className="bg-gradient-to-r from-pink-600 to-purple-600 p-4 sm:p-6 text-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
@@ -385,7 +373,9 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
               </div>
               <div>
                 <h2 className="text-2xl sm:text-3xl font-bold">Catálogo de Novelas</h2>
-                <p className="text-sm sm:text-base opacity-90">Novelas completas disponibles</p>
+                <p className="text-sm sm:text-base opacity-90">
+                  Novelas completas disponibles - Precios sincronizados
+                </p>
               </div>
             </div>
             <button
@@ -399,7 +389,6 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
 
         <div className="overflow-y-auto max-h-[calc(95vh-120px)]">
           <div className="p-4 sm:p-6">
-            {/* Información Principal */}
             <div className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-2xl p-6 mb-6 border-2 border-pink-200">
               <div className="flex items-center mb-4">
                 <div className="bg-pink-100 p-3 rounded-xl mr-4">
@@ -427,7 +416,6 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
                 </div>
               </div>
 
-              {/* Número de contacto */}
               <div className="mt-6 bg-white rounded-xl p-4 border border-pink-300">
                 <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
                   <div className="text-center sm:text-left">
@@ -455,7 +443,6 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
               </div>
             </div>
 
-            {/* Opciones del catálogo */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
               <button
                 onClick={downloadNovelList}
@@ -480,17 +467,14 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
               </button>
             </div>
 
-            {/* Lista de novelas */}
             {showNovelList && (
               <div className="bg-white rounded-2xl border-2 border-gray-200 overflow-hidden">
-                {/* Filtros */}
                 <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 border-b border-gray-200">
                   <div className="flex items-center mb-4">
                     <Filter className="h-5 w-5 text-purple-600 mr-2" />
                     <h4 className="text-lg font-bold text-purple-900">Filtros de Búsqueda</h4>
                   </div>
                   
-                  {/* Barra de búsqueda */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -546,7 +530,6 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
                     </div>
                   </div>
                   
-                  {/* Botón limpiar filtros y contador de resultados */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
                     <div className="text-sm text-purple-700">
                       Mostrando {filteredNovelas.length} de {allNovelas.length} novelas
@@ -588,7 +571,6 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
                   </div>
                 </div>
 
-                {/* Resumen de totales */}
                 {selectedNovelas.length > 0 && (
                   <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 border-b border-gray-200">
                     <div className="flex items-center mb-4">
@@ -671,7 +653,6 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
                                     </span>
                                   </div>
                                   
-                                  {/* Selector de tipo de pago */}
                                   <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
                                     <span className="text-sm font-medium text-gray-700">Tipo de pago:</span>
                                     <div className="flex space-x-2">
