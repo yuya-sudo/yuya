@@ -29,11 +29,12 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
   const [sortBy, setSortBy] = useState<'titulo' | 'año' | 'capitulos'>('titulo');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
-  // Get novels and prices from admin context if available
+  // Get novels and prices from admin context if available - sincronizado en tiempo real
   const adminNovels = adminContext?.state?.novels || [];
   const novelPricePerChapter = adminContext?.state?.prices?.novelPricePerChapter || 5;
+  const transferFeePercentage = adminContext?.state?.prices?.transferFeePercentage || 10;
   
-  // Lista de novelas basada en el documento
+  // Lista de novelas basada en el documento - sincronizada con el panel de control
   const defaultNovelas: Novela[] = [
     { id: 1, titulo: "Corazón Salvaje", genero: "Drama/Romance", capitulos: 185, año: 2009 },
     { id: 2, titulo: "La Usurpadora", genero: "Drama/Melodrama", capitulos: 98, año: 1998 },
@@ -184,7 +185,7 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
     setSortOrder('asc');
   };
 
-  // Calcular totales por tipo de pago
+  // Calcular totales por tipo de pago - usando porcentaje sincronizado
   const calculateTotals = () => {
     const selectedNovelasData = novelasWithPayment.filter(n => selectedNovelas.includes(n.id));
     
@@ -193,7 +194,7 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
     
     const cashTotal = cashNovelas.reduce((sum, n) => sum + (n.capitulos * novelPricePerChapter), 0);
     const transferBaseTotal = transferNovelas.reduce((sum, n) => sum + (n.capitulos * novelPricePerChapter), 0);
-    const transferFee = Math.round(transferBaseTotal * 0.1);
+    const transferFee = Math.round(transferBaseTotal * (transferFeePercentage / 100));
     const transferTotal = transferBaseTotal + transferFee;
     
     const grandTotal = cashTotal + transferTotal;
@@ -216,6 +217,7 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
     let listText = "📚 CATÁLOGO DE NOVELAS DISPONIBLES\n";
     listText += "TV a la Carta - Novelas Completas\n\n";
     listText += `💰 Precio: $${novelPricePerChapter} CUP por capítulo\n`;
+    listText += `💳 Recargo transferencia: ${transferFeePercentage}%\n`;
     listText += "📱 Contacto: +5354690878\n\n";
     listText += "═══════════════════════════════════\n\n";
     
@@ -232,19 +234,19 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
       listText += `   💰 Costo en efectivo: ${baseCost.toLocaleString()} CUP\n\n`;
     });
     
-    listText += "\n🏦 PRECIOS CON TRANSFERENCIA BANCARIA (+10%):\n";
+    listText += `\n🏦 PRECIOS CON TRANSFERENCIA BANCARIA (+${transferFeePercentage}%):\n`;
     listText += "═══════════════════════════════════\n\n";
     
     allNovelas.forEach((novela, index) => {
       const baseCost = novela.capitulos * novelPricePerChapter;
-      const transferCost = Math.round(baseCost * 1.1);
+      const transferCost = Math.round(baseCost * (1 + transferFeePercentage / 100));
       const recargo = transferCost - baseCost;
       listText += `${index + 1}. ${novela.titulo}\n`;
       listText += `   📺 Género: ${novela.genero}\n`;
       listText += `   📊 Capítulos: ${novela.capitulos}\n`;
       listText += `   📅 Año: ${novela.año}\n`;
       listText += `   💰 Costo base: ${baseCost.toLocaleString()} CUP\n`;
-      listText += `   💳 Recargo (10%): +${recargo.toLocaleString()} CUP\n`;
+      listText += `   💳 Recargo (${transferFeePercentage}%): +${recargo.toLocaleString()} CUP\n`;
       listText += `   💰 Costo con transferencia: ${transferCost.toLocaleString()} CUP\n\n`;
     });
     
@@ -253,7 +255,7 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
     
     const totalCapitulos = allNovelas.reduce((sum, novela) => sum + novela.capitulos, 0);
     const totalEfectivo = allNovelas.reduce((sum, novela) => sum + (novela.capitulos * novelPricePerChapter), 0);
-    const totalTransferencia = allNovelas.reduce((sum, novela) => sum + Math.round((novela.capitulos * novelPricePerChapter) * 1.1), 0);
+    const totalTransferencia = allNovelas.reduce((sum, novela) => sum + Math.round((novela.capitulos * novelPricePerChapter) * (1 + transferFeePercentage / 100)), 0);
     const totalRecargo = totalTransferencia - totalEfectivo;
     
     listText += `📊 Total de novelas: ${allNovelas.length}\n`;
@@ -262,13 +264,13 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
     listText += `   💰 Costo total: ${totalEfectivo.toLocaleString()} CUP\n\n`;
     listText += `🏦 CATÁLOGO COMPLETO CON TRANSFERENCIA:\n`;
     listText += `   💰 Costo base: ${totalEfectivo.toLocaleString()} CUP\n`;
-    listText += `   💳 Recargo total (10%): +${totalRecargo.toLocaleString()} CUP\n`;
+    listText += `   💳 Recargo total (${transferFeePercentage}%): +${totalRecargo.toLocaleString()} CUP\n`;
     listText += `   💰 Costo total con transferencia: ${totalTransferencia.toLocaleString()} CUP\n\n`;
     
     listText += "═══════════════════════════════════\n";
     listText += "💡 INFORMACIÓN IMPORTANTE:\n";
     listText += "• Los precios en efectivo no tienen recargo adicional\n";
-    listText += "• Las transferencias bancarias tienen un 10% de recargo\n";
+    listText += `• Las transferencias bancarias tienen un ${transferFeePercentage}% de recargo\n`;
     listText += "• Puedes seleccionar novelas individuales o el catálogo completo\n";
     listText += "• Todos los precios están en pesos cubanos (CUP)\n\n";
     listText += "📞 Para encargar, contacta al +5354690878\n";
@@ -310,7 +312,7 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
         message += `   📺 Género: ${novela.genero}\n`;
         message += `   📊 Capítulos: ${novela.capitulos}\n`;
         message += `   📅 Año: ${novela.año}\n`;
-        message += `   💰 Costo: $${(novela.capitulos * 5).toLocaleString()} CUP\n\n`;
+        message += `   💰 Costo: $${(novela.capitulos * novelPricePerChapter).toLocaleString()} CUP\n\n`;
       });
       message += `💰 Subtotal Efectivo: $${cashTotal.toLocaleString()} CUP\n`;
       message += `📊 Total capítulos: ${cashNovelas.reduce((sum, n) => sum + n.capitulos, 0)}\n\n`;
@@ -318,22 +320,22 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
     
     // Novelas por transferencia
     if (transferNovelas.length > 0) {
-      message += "🏦 PAGO POR TRANSFERENCIA BANCARIA (+10%):\n";
+      message += `🏦 PAGO POR TRANSFERENCIA BANCARIA (+${transferFeePercentage}%):\n`;
       message += "═══════════════════════════════════\n";
       transferNovelas.forEach((novela, index) => {
-        const baseCost = novela.capitulos * 5;
-        const fee = Math.round(baseCost * 0.1);
+        const baseCost = novela.capitulos * novelPricePerChapter;
+        const fee = Math.round(baseCost * (transferFeePercentage / 100));
         const totalCost = baseCost + fee;
         message += `${index + 1}. ${novela.titulo}\n`;
         message += `   📺 Género: ${novela.genero}\n`;
         message += `   📊 Capítulos: ${novela.capitulos}\n`;
         message += `   📅 Año: ${novela.año}\n`;
         message += `   💰 Costo base: $${baseCost.toLocaleString()} CUP\n`;
-        message += `   💳 Recargo (10%): +$${fee.toLocaleString()} CUP\n`;
+        message += `   💳 Recargo (${transferFeePercentage}%): +$${fee.toLocaleString()} CUP\n`;
         message += `   💰 Costo total: $${totalCost.toLocaleString()} CUP\n\n`;
       });
       message += `💰 Subtotal base transferencia: $${transferBaseTotal.toLocaleString()} CUP\n`;
-      message += `💳 Recargo total (10%): +$${transferFee.toLocaleString()} CUP\n`;
+      message += `💳 Recargo total (${transferFeePercentage}%): +$${transferFee.toLocaleString()} CUP\n`;
       message += `💰 Subtotal Transferencia: $${transferTotal.toLocaleString()} CUP\n`;
       message += `📊 Total capítulos: ${transferNovelas.reduce((sum, n) => sum + n.capitulos, 0)}\n\n`;
     }
@@ -413,11 +415,11 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
                 </div>
                 <div className="flex items-center">
                   <span className="text-2xl mr-3">💰</span>
-                  <p className="font-semibold">Costo: $5 CUP por cada capítulo</p>
+                  <p className="font-semibold">Costo: ${novelPricePerChapter} CUP por cada capítulo</p>
                 </div>
                 <div className="flex items-center">
                   <span className="text-2xl mr-3">💳</span>
-                  <p className="font-semibold">Transferencia bancaria: +10% de recargo</p>
+                  <p className="font-semibold">Transferencia bancaria: +{transferFeePercentage}% de recargo</p>
                 </div>
                 <div className="flex items-center">
                   <span className="text-2xl mr-3">📱</span>
@@ -608,7 +610,7 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
                         <div className="text-sm text-gray-600">Efectivo</div>
                       </div>
                       <div className="bg-white rounded-lg p-3 border border-gray-200 text-center">
-                        <div className="text-2xl font-bold text-orange-600">{totals.transferTotal.toLocaleString()}</div>
+                        <div className="text-2xl font-bold text-orange-600">${totals.transferTotal.toLocaleString()}</div>
                         <div className="text-sm text-gray-600">Transferencia</div>
                       </div>
                     </div>
@@ -616,11 +618,11 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
                     <div className="bg-gradient-to-r from-green-100 to-blue-100 rounded-lg p-4 border-2 border-green-300">
                       <div className="flex justify-between items-center">
                         <span className="text-lg font-bold text-gray-900">TOTAL A PAGAR:</span>
-                        <span className="text-2xl font-bold text-green-600">{totals.grandTotal.toLocaleString()} CUP</span>
+                        <span className="text-2xl font-bold text-green-600">${totals.grandTotal.toLocaleString()} CUP</span>
                       </div>
                       {totals.transferFee > 0 && (
                         <div className="text-sm text-orange-600 mt-2">
-                          Incluye {totals.transferFee.toLocaleString()} CUP de recargo por transferencia
+                          Incluye ${totals.transferFee.toLocaleString()} CUP de recargo por transferencia ({transferFeePercentage}%)
                         </div>
                       )}
                     </div>
@@ -633,7 +635,7 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
                       filteredNovelas.map((novela) => {
                       const isSelected = selectedNovelas.includes(novela.id);
                       const baseCost = novela.capitulos * novelPricePerChapter;
-                      const transferCost = Math.round(baseCost * 1.1);
+                      const transferCost = Math.round(baseCost * (1 + transferFeePercentage / 100));
                       const finalCost = novela.paymentType === 'transfer' ? transferCost : baseCost;
                       
                       return (
@@ -693,7 +695,7 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
                                         }`}
                                       >
                                         <CreditCard className="h-3 w-3 inline mr-1" />
-                                        Transferencia (+10%)
+                                        Transferencia (+{transferFeePercentage}%)
                                       </button>
                                     </div>
                                   </div>
@@ -707,13 +709,13 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
                                   </div>
                                   {novela.paymentType === 'transfer' && (
                                     <div className="text-xs text-gray-500">
-                                      Base: {baseCost.toLocaleString()} CUP
+                                      Base: ${baseCost.toLocaleString()} CUP
                                       <br />
-                                      Recargo: +{(transferCost - baseCost).toLocaleString()} CUP
+                                      Recargo: +${(transferCost - baseCost).toLocaleString()} CUP
                                     </div>
                                   )}
                                   <div className="text-xs text-gray-500 mt-1">
-                                    {novelPricePerChapter} CUP × {novela.capitulos} cap.
+                                    ${novelPricePerChapter} CUP × {novela.capitulos} cap.
                                   </div>
                                 </div>
                               </div>
@@ -754,7 +756,7 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
                           {selectedNovelas.length} novelas seleccionadas
                         </p>
                         <p className="text-sm text-gray-600">
-                          Total: {totals.grandTotal.toLocaleString()} CUP
+                          Total: ${totals.grandTotal.toLocaleString()} CUP
                         </p>
                       </div>
                       <button

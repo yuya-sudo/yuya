@@ -149,7 +149,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [state.items]);
 
   const addItem = (item: SeriesCartItem) => {
-    const price = calculateItemPrice(item);
     const itemWithDefaults = { 
       ...item, 
       paymentType: 'cash' as const,
@@ -206,11 +205,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const calculateItemPrice = (item: SeriesCartItem): number => {
-    const isAnime = item.original_language === 'ja' || 
-                   (item.genre_ids && item.genre_ids.includes(16)) ||
-                   item.title?.toLowerCase().includes('anime');
-    
-    // Get prices from admin context if available
+    // Get prices from admin context if available, fallback to defaults
     const moviePrice = adminContext?.state?.prices?.moviePrice || 80;
     const seriesPrice = adminContext?.state?.prices?.seriesPrice || 300;
     const transferFeePercentage = adminContext?.state?.prices?.transferFeePercentage || 10;

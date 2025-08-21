@@ -29,7 +29,7 @@ interface CheckoutModalProps {
   total: number;
 }
 
-// Zonas de entrega con costos
+// Zonas de entrega con costos - sincronizadas con el panel de control
 const DELIVERY_ZONES = {
   'Por favor seleccionar su Barrio/Zona': 0,
   'Santiago de Cuba > Santiago de Cuba > Nuevo Vista Alegre': 100,
@@ -106,14 +106,19 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
     const cashItems = items.filter(item => item.paymentType === 'cash');
     const transferItems = items.filter(item => item.paymentType === 'transfer');
     
+    // Get current transfer fee percentage from admin context
+    const transferFeePercentage = adminContext?.state?.prices?.transferFeePercentage || 10;
+    const moviePrice = adminContext?.state?.prices?.moviePrice || 80;
+    const seriesPrice = adminContext?.state?.prices?.seriesPrice || 300;
+    
     const cashTotal = cashItems.reduce((sum, item) => {
-      const basePrice = item.type === 'movie' ? 80 : (item.selectedSeasons?.length || 1) * 300;
+      const basePrice = item.type === 'movie' ? moviePrice : (item.selectedSeasons?.length || 1) * seriesPrice;
       return sum + basePrice;
     }, 0);
     
     const transferTotal = transferItems.reduce((sum, item) => {
-      const basePrice = item.type === 'movie' ? 80 : (item.selectedSeasons?.length || 1) * 300;
-      return sum + Math.round(basePrice * 1.1);
+      const basePrice = item.type === 'movie' ? moviePrice : (item.selectedSeasons?.length || 1) * seriesPrice;
+      return sum + Math.round(basePrice * (1 + transferFeePercentage / 100));
     }, 0);
     
     return { cashTotal, transferTotal };
@@ -122,8 +127,12 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
   const generateOrderText = () => {
     const orderId = generateOrderId();
     const { cashTotal, transferTotal } = calculateTotals();
+    const transferFeePercentage = adminContext?.state?.prices?.transferFeePercentage || 10;
+    const moviePrice = adminContext?.state?.prices?.moviePrice || 80;
+    const seriesPrice = adminContext?.state?.prices?.seriesPrice || 300;
+    
     const transferFee = transferTotal - items.filter(item => item.paymentType === 'transfer').reduce((sum, item) => {
-      const basePrice = item.type === 'movie' ? 80 : (item.selectedSeasons?.length || 1) * 300;
+      const basePrice = item.type === 'movie' ? moviePrice : (item.selectedSeasons?.length || 1) * seriesPrice;
       return sum + basePrice;
     }, 0);
 
@@ -134,9 +143,9 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
           ? `\n  📺 Temporadas: ${item.selectedSeasons.sort((a, b) => a - b).join(', ')}` 
           : '';
         const itemType = item.type === 'movie' ? 'Película' : 'Serie';
-        const basePrice = item.type === 'movie' ? 80 : (item.selectedSeasons?.length || 1) * 300;
-        const finalPrice = item.paymentType === 'transfer' ? Math.round(basePrice * 1.1) : basePrice;
-        const paymentTypeText = item.paymentType === 'transfer' ? 'Transferencia (+10%)' : 'Efectivo';
+        const basePrice = item.type === 'movie' ? moviePrice : (item.selectedSeasons?.length || 1) * seriesPrice;
+        const finalPrice = item.paymentType === 'transfer' ? Math.round(basePrice * (1 + transferFeePercentage / 100)) : basePrice;
+        const paymentTypeText = item.paymentType === 'transfer' ? `Transferencia (+${transferFeePercentage}%)` : 'Efectivo';
         const emoji = item.type === 'movie' ? '🎬' : '📺';
         return `${emoji} *${item.title}*${seasonInfo}\n  📋 Tipo: ${itemType}\n  💳 Pago: ${paymentTypeText}\n  💰 Precio: $${finalPrice.toLocaleString()} CUP`;
       })
@@ -163,7 +172,7 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
     orderText += `• *Subtotal Contenido: $${total.toLocaleString()} CUP*\n`;
     
     if (transferFee > 0) {
-      orderText += `• Recargo transferencia (10%): +$${transferFee.toLocaleString()} CUP\n`;
+      orderText += `• Recargo transferencia (${transferFeePercentage}%): +$${transferFee.toLocaleString()} CUP\n`;
     }
     
     orderText += `🚚 Entrega (${deliveryZone.split(' > ')[2]}): +$${deliveryCost.toLocaleString()} CUP\n`;
@@ -213,8 +222,12 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
     try {
       const { orderId } = generateOrderText();
       const { cashTotal, transferTotal } = calculateTotals();
+      const transferFeePercentage = adminContext?.state?.prices?.transferFeePercentage || 10;
+      const moviePrice = adminContext?.state?.prices?.moviePrice || 80;
+      const seriesPrice = adminContext?.state?.prices?.seriesPrice || 300;
+      
       const transferFee = transferTotal - items.filter(item => item.paymentType === 'transfer').reduce((sum, item) => {
-        const basePrice = item.type === 'movie' ? 80 : (item.selectedSeasons?.length || 1) * 300;
+        const basePrice = item.type === 'movie' ? moviePrice : (item.selectedSeasons?.length || 1) * seriesPrice;
         return sum + basePrice;
       }, 0);
 
