@@ -13,6 +13,9 @@ export function Cart() {
   const adminContext = React.useContext(AdminContext);
   const [showCheckoutModal, setShowCheckoutModal] = React.useState(false);
 
+  // Get current transfer fee percentage with real-time updates
+  const transferFeePercentage = adminContext?.state?.prices?.transferFeePercentage || 10;
+
   const handleCheckout = (orderData: OrderData) => {
     // Calculate totals
     const totalsByPaymentType = calculateTotalByPaymentType();
@@ -177,7 +180,7 @@ export function Cart() {
                             }`}
                           >
                             <CreditCard className="h-3 w-3 inline mr-1" />
-                            Transferencia (+{adminContext?.state?.prices?.transferFeePercentage || 10}%)
+                            Transferencia (+{transferFeePercentage}%)
                           </button>
                         </div>
                       </div>
@@ -233,7 +236,7 @@ export function Cart() {
                         </div>
                         {item.paymentType === 'transfer' && (
                           <div className="text-xs text-orange-600 mt-1">
-                            +{adminContext?.state?.prices?.transferFeePercentage || 10}% incluido
+                            +{transferFeePercentage}% incluido
                           </div>
                         )}
                       </div>
@@ -316,7 +319,7 @@ export function Cart() {
                       ${totalsByPaymentType.transfer.toLocaleString()} CUP
                     </div>
                     <div className="text-sm text-orange-600">
-                      {state.items.filter(item => item.paymentType === 'transfer').length} elementos (+{adminContext?.state?.prices?.transferFeePercentage || 10}%)
+                      {state.items.filter(item => item.paymentType === 'transfer').length} elementos (+{transferFeePercentage}%)
                     </div>
                   </div>
                 </div>
@@ -340,9 +343,7 @@ export function Cart() {
               <div className="space-y-3 max-h-64 overflow-y-auto">
                 {state.items.map((item) => {
                   const itemPrice = calculateItemPrice(item);
-                  const moviePrice = adminContext?.state?.prices?.moviePrice || 80;
-                  const seriesPrice = adminContext?.state?.prices?.seriesPrice || 300;
-                  const basePrice = item.type === 'movie' ? moviePrice : (item.selectedSeasons?.length || 1) * seriesPrice;
+                  const basePrice = item.type === 'movie' ? 80 : (item.selectedSeasons?.length || 1) * 300;
                   return (
                     <div key={`${item.type}-${item.id}`} className="bg-white rounded-lg p-3 border border-gray-200">
                       <div className="flex-1">
