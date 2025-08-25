@@ -38,6 +38,7 @@ import {
   LineChart
 } from 'lucide-react';
 import { useAdmin } from '../context/AdminContext';
+import { NotificationManager } from '../components/NotificationManager';
 import type { PriceConfig, DeliveryZone, Novel } from '../context/AdminContext';
 
 // Animated Network Background Component
@@ -258,7 +259,7 @@ const ModernLogin = ({ onLogin }: { onLogin: (username: string, password: string
 
 // Main AdminPanel Component
 export function AdminPanel() {
-  const { state, login, logout, updatePrices, addDeliveryZone, updateDeliveryZone, deleteDeliveryZone, addNovel, updateNovel, deleteNovel, clearNotifications, exportSystemBackup } = useAdmin();
+  const { state, login, logout, updatePrices, addDeliveryZone, updateDeliveryZone, deleteDeliveryZone, addNovel, updateNovel, deleteNovel, addNotification, clearNotifications } = useAdmin();
   const [activeSection, setActiveSection] = useState<'dashboard' | 'prices' | 'zones' | 'novels' | 'system' | 'notifications'>('dashboard');
   const [editingZone, setEditingZone] = useState<DeliveryZone | null>(null);
   const [editingNovel, setEditingNovel] = useState<Novel | null>(null);
@@ -275,7 +276,14 @@ export function AdminPanel() {
   }, [state.prices]);
 
   if (!state.isAuthenticated) {
-    return <ModernLogin onLogin={login} />;
+    return <ModernLogin onLogin={(username: string, password: string) => {
+      // Validación simple de credenciales
+      if (username === 'admin' && password === 'admin123') {
+        login();
+        return true;
+      }
+      return false;
+    }} />;
   }
 
   const handlePriceUpdate = (e: React.FormEvent) => {
@@ -318,11 +326,79 @@ export function AdminPanel() {
   const startEditZone = (zone: DeliveryZone) => {
     setEditingZone(zone);
     setZoneForm({ name: zone.name, cost: zone.cost, active: zone.active });
+    addNotification({
+      type: 'info',
+      title: 'Editando Zona',
+      message: `Iniciando edición de "${zone.name}"`,
+      section: 'Zonas de Entrega',
+      action: 'Iniciar Edición'
+    });
   };
 
   const startEditNovel = (novel: Novel) => {
     setEditingNovel(novel);
     setNovelForm({ titulo: novel.titulo, genero: novel.genero, capitulos: novel.capitulos, año: novel.año, descripcion: novel.descripcion || '', active: novel.active });
+    addNotification({
+      type: 'info',
+      title: 'Editando Novela',
+      message: `Iniciando edición de "${novel.titulo}"`,
+      section: 'Gestión de Novelas',
+      action: 'Iniciar Edición'
+    });
+  };
+
+  const exportSystemBackup = () => {
+    try {
+      const systemData = {
+        prices: state.prices,
+        deliveryZones: state.deliveryZones,
+        novels: state.novels,
+        exportDate: new Date().toISOString(),
+        version: '1.0'
+      };
+
+      const dataStr = JSON.stringify(systemData, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `tv-a-la-carta-backup-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      addNotification({
+        type: 'success',
+        title: 'Backup Exportado',
+        message: 'El respaldo del sistema se ha descargado exitosamente',
+        section: 'Sistema',
+        action: 'Exportar Backup'
+      });
+    } catch (error) {
+      addNotification({
+        type: 'error',
+        title: 'Error en Exportación',
+        message: 'No se pudo exportar el respaldo del sistema',
+        section: 'Sistema',
+        action: 'Exportar Backup'
+      });
+    }
+  };
+
+  const handleSectionChange = (section: 'dashboard' | 'prices' | 'zones' | 'novels' | 'system' | 'notifications') => {
+    setActiveSection(section);
+    addNotification({
+      type: 'info',
+      title: 'Sección Cambiada',
+      message: `Navegando a ${section === 'dashboard' ? 'Dashboard' : 
+                              section === 'prices' ? 'Configuración de Precios' :
+                              section === 'zones' ? 'Zonas de Entrega' :
+                              section === 'novels' ? 'Gestión de Novelas' :
+                              section === 'system' ? 'Sistema' : 'Notificaciones'}`,
+      section: 'Navegación',
+      action: 'Cambiar Sección'
+    });
   };
 
   const renderDashboard = () => (
@@ -908,13 +984,42 @@ export function AdminPanel() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-2xl font-bold text-gray-900">Notificaciones del Sistema</h3>
-        <button
-          onClick={clearNotifications}
-          className="bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center space-x-2"
-        >
-          <Trash2 className="h-5 w-5" />
-          <span>Limpiar Todo</span>
-        </button>
+        <div className="flex space-x-3">
+          <button
+            onClick={() => {
+              addNotification({
+                type: 'info',
+                title: 'Notificación de Prueba',
+                message: 'Esta es una notificación de prueba para verificar el sistema',
+                section: 'Sistema',
+                action: 'Prueba'
+              });
+            }}
+            className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-4 py-2 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center space-x-2"
+          >
+            <Bell className="h-4 w-4" />
+            <span>Prueba</span>
+          </button>
+          <button
+            onClick={() => {
+              clearNotifications();
+              // Agregar notificación después de limpiar
+              setTimeout(() => {
+                addNotification({
+                  type: 'success',
+                  title: 'Notificaciones Limpiadas',
+                  message: 'Se han eliminado todas las notificaciones del historial',
+                  section: 'Notificaciones',
+                  action: 'Limpiar Historial'
+                });
+              }, 100);
+            }}
+            className="bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 hover:shadow-lg flex items-center space-x-2"
+          >
+            <Trash2 className="h-5 w-5" />
+            <span>Limpiar Todo</span>
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
@@ -922,9 +1027,12 @@ export function AdminPanel() {
           <h4 className="text-lg font-bold text-gray-900">
             Historial de Actividades ({state.notifications.length})
           </h4>
+          <p className="text-sm text-gray-600 mt-1">
+            Las notificaciones aparecen automáticamente en la esquina superior derecha
+          </p>
         </div>
         <div className="divide-y divide-gray-200 max-h-96 overflow-y-auto">
-          {state.notifications.map((notification) => (
+          {state.notifications.length > 0 ? state.notifications.slice().reverse().map((notification) => (
             <div key={notification.id} className="p-6 hover:bg-gray-50 transition-colors">
               <div className="flex items-start space-x-4">
                 <div className={`p-2 rounded-full ${
@@ -953,7 +1061,31 @@ export function AdminPanel() {
                 </div>
               </div>
             </div>
-          ))}
+          )) : (
+            <div className="p-12 text-center">
+              <Bell className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                No hay notificaciones
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Las actividades del sistema aparecerán aquí automáticamente
+              </p>
+              <button
+                onClick={() => {
+                  addNotification({
+                    type: 'info',
+                    title: 'Primera Notificación',
+                    message: '¡Bienvenido al sistema de notificaciones! Todas las acciones se registrarán aquí.',
+                    section: 'Sistema',
+                    action: 'Bienvenida'
+                  });
+                }}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+              >
+                Generar Notificación de Prueba
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1019,7 +1151,7 @@ export function AdminPanel() {
                     return (
                       <button
                         key={item.id}
-                        onClick={() => setActiveSection(item.id as any)}
+                        onClick={() => handleSectionChange(item.id as any)}
                         className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-all duration-300 transform hover:scale-105 ${
                           activeSection === item.id
                             ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
@@ -1047,6 +1179,9 @@ export function AdminPanel() {
           </div>
         </div>
       </div>
+      
+      {/* Notification Manager */}
+      <NotificationManager />
     </div>
   );
 }
