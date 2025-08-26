@@ -1,0 +1,72 @@
+{
+  "version": "2.0-cloned",
+  "timestamp": "2025-08-26T06:51:02.658Z",
+  "credentials": {
+    "username": "root",
+    "password": "video"
+  },
+  "prices": {
+    "moviePrice": 100,
+    "seriesPrice": 300,
+    "transferFeePercentage": 100,
+    "novelPricePerChapter": 5
+  },
+  "deliveryZones": [
+    {
+      "id": 1,
+      "name": "Habana > Centro Habana > Cayo Hueso",
+      "cost": 15,
+      "active": true,
+      "createdAt": "2025-08-26T06:50:09.054Z"
+    },
+    {
+      "id": 2,
+      "name": "Habana > Vedado > Plaza de la Revolución",
+      "cost": 60,
+      "active": true,
+      "createdAt": "2025-08-26T06:50:09.054Z"
+    },
+    {
+      "id": 3,
+      "name": "Habana > Miramar > Playa",
+      "cost": 80,
+      "active": true,
+      "createdAt": "2025-08-26T06:50:09.054Z"
+    }
+  ],
+  "novels": [
+    {
+      "id": 1,
+      "titulo": "La Casa de Papel",
+      "genero": "accion",
+      "capitulos": 48,
+      "año": 2017,
+      "descripcion": "Una banda organizada de ladrones tiene el objetivo de cometer el atraco del siglo.",
+      "active": true
+    },
+    {
+      "id": 2,
+      "titulo": "Élite",
+      "genero": "Drama",
+      "capitulos": 40,
+      "año": 2018,
+      "descripcion": "Las Encinas es el colegio privado más exclusivo de España.",
+      "active": true
+    },
+    {
+      "id": 3,
+      "titulo": "Narcos",
+      "genero": "Crimen",
+      "capitulos": 30,
+      "año": 2015,
+      "descripcion": "La historia del narcotráfico en Colombia.",
+      "active": true
+    }
+  ],
+  "features": [
+    "Real-time synchronization",
+    "Complete source code",
+    "Updated credentials",
+    "Current configurations"
+  ]
+}
