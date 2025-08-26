@@ -20,7 +20,9 @@ import {
   AlertCircle,
   CheckCircle,
   Info,
-  AlertTriangle
+  AlertTriangle,
+  Copy,
+  FileText
 } from 'lucide-react';
 import { useAdmin } from '../context/AdminContext';
 import type { PriceConfig, DeliveryZone, Novel, Notification } from '../context/AdminContext';
@@ -40,10 +42,11 @@ export function AdminPanel() {
     deleteNovel,
     removeNotification,
     clearNotifications,
-    exportSystemBackup
+    exportSystemBackup,
+    exportClonedSystem
   } = useAdmin();
 
-  // Authentication state
+  // Authentication state with updated credentials
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -73,15 +76,19 @@ export function AdminPanel() {
     setPriceForm(state.prices);
   }, [state.prices]);
 
-  const correctPassword = 'admin123';
+  // Updated credentials: root / video
+  const correctCredentials = {
+    username: 'root',
+    password: 'video'
+  };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === correctPassword) {
+    if (username === correctCredentials.username && password === correctCredentials.password) {
       login();
       setLoginError('');
     } else {
-      setLoginError('Contraseña incorrecta');
+      setLoginError('Credenciales incorrectas. Use: root / video');
     }
   };
 
@@ -204,284 +211,6 @@ export function AdminPanel() {
     }
   };
 
-  // Export system functionality
-  const exportCompleteSystem = async () => {
-    try {
-      // Generate all component files
-      const files = {
-        'AdminContext.tsx': generateAdminContextFile(),
-        'CartContext.tsx': generateCartContextFile(),
-        'CheckoutModal.tsx': generateCheckoutModalFile(),
-        'NovelasModal.tsx': generateNovelasModalFile(),
-        'PriceCard.tsx': generatePriceCardFile(),
-        'AdminPanel.tsx': generateAdminPanelFile(),
-        'system-config.json': JSON.stringify({
-          prices: state.prices,
-          deliveryZones: state.deliveryZones,
-          novels: state.novels,
-          exportDate: new Date().toISOString(),
-          version: '2.0'
-        }, null, 2)
-      };
-
-      // Create and download ZIP
-      const JSZip = (await import('jszip')).default;
-      const zip = new JSZip();
-      
-      Object.entries(files).forEach(([filename, content]) => {
-        zip.file(filename, content);
-      });
-
-      const blob = await zip.generateAsync({ type: 'blob' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `tv-a-la-carta-system-${new Date().toISOString().split('T')[0]}.zip`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      alert('Sistema exportado exitosamente');
-    } catch (error) {
-      console.error('Error exporting system:', error);
-      alert('Error al exportar el sistema: ' + (error as Error).message);
-    }
-  };
-
-  const generateAdminContextFile = () => {
-    return `import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import JSZip from 'jszip';
-
-export interface PriceConfig {
-  moviePrice: number;
-  seriesPrice: number;
-  transferFeePercentage: number;
-  novelPricePerChapter: number;
-}
-
-export interface DeliveryZone {
-  id: number;
-  name: string;
-  cost: number;
-  active: boolean;
-  createdAt: string;
-}
-
-export interface Novel {
-  id: number;
-  titulo: string;
-  genero: string;
-  capitulos: number;
-  año: number;
-  descripcion?: string;
-  active: boolean;
-}
-
-export interface Notification {
-  id: string;
-  type: 'success' | 'warning' | 'error' | 'info';
-  title: string;
-  message: string;
-  timestamp: string;
-  section: string;
-  action: string;
-}
-
-export interface AdminState {
-  isAuthenticated: boolean;
-  prices: PriceConfig;
-  deliveryZones: DeliveryZone[];
-  novels: Novel[];
-  notifications: Notification[];
-  lastBackup?: string;
-}
-
-const initialState: AdminState = {
-  isAuthenticated: false,
-  prices: ${JSON.stringify(state.prices, null, 2)},
-  deliveryZones: ${JSON.stringify(state.deliveryZones, null, 2)},
-  novels: ${JSON.stringify(state.novels, null, 2)},
-  notifications: []
-};
-
-// ... rest of AdminContext implementation
-`;
-  };
-
-  const generateCartContextFile = () => {
-    return `import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { Toast } from '../components/Toast';
-import { AdminContext } from './AdminContext';
-import type { CartItem } from '../types/movie';
-
-// Current prices configuration
-const CURRENT_PRICES = ${JSON.stringify(state.prices, null, 2)};
-
-// ... rest of CartContext implementation with current prices
-`;
-  };
-
-  const generateCheckoutModalFile = () => {
-    return `import React, { useState } from 'react';
-import { X, User, MapPin, Phone, Copy, Check, MessageCircle, Calculator, DollarSign, CreditCard } from 'lucide-react';
-import { AdminContext } from '../context/AdminContext';
-
-// Current delivery zones configuration
-const DELIVERY_ZONES = ${JSON.stringify(state.deliveryZones.reduce((acc, zone) => {
-      acc[zone.name] = zone.cost;
-      return acc;
-    }, {} as { [key: string]: number }), null, 2)};
-
-// Current prices configuration
-const CURRENT_PRICES = ${JSON.stringify(state.prices, null, 2)};
-
-// ... rest of CheckoutModal implementation with current configuration
-`;
-  };
-
-  const generateNovelasModalFile = () => {
-    // Get current prices from state
-    const { moviePrice, seriesPrice, transferFeePercentage, novelPricePerChapter } = state.prices;
-    
-    return `import React, { useState, useEffect } from 'react';
-import { X, Download, MessageCircle, Phone, BookOpen, Info, Check, DollarSign, CreditCard, Calculator, Search, Filter, SortAsc, SortDesc } from 'lucide-react';
-import { AdminContext } from '../context/AdminContext';
-
-// Current novels catalog
-const NOVELS_CATALOG = ${JSON.stringify(state.novels, null, 2)};
-
-// Current pricing configuration
-const PRICING_CONFIG = {
-  moviePrice: ${moviePrice},
-  seriesPrice: ${seriesPrice},
-  transferFeePercentage: ${transferFeePercentage},
-  novelPricePerChapter: ${novelPricePerChapter}
-};
-
-interface Novela {
-  id: number;
-  titulo: string;
-  genero: string;
-  capitulos: number;
-  año: number;
-  descripcion?: string;
-  paymentType?: 'cash' | 'transfer';
-}
-
-interface NovelasModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
-  const adminContext = React.useContext(AdminContext);
-  const [selectedNovelas, setSelectedNovelas] = useState<number[]>([]);
-  const [novelasWithPayment, setNovelasWithPayment] = useState<Novela[]>([]);
-  const [showNovelList, setShowNovelList] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedGenre, setSelectedGenre] = useState('');
-  const [selectedYear, setSelectedYear] = useState('');
-  const [sortBy, setSortBy] = useState<'titulo' | 'año' | 'capitulos'>('titulo');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-
-  // Get novels and prices from admin context with real-time updates or fallback to static config
-  const adminNovels = adminContext?.state?.novels || NOVELS_CATALOG;
-  const novelPricePerChapter = adminContext?.state?.prices?.novelPricePerChapter || PRICING_CONFIG.novelPricePerChapter;
-  const transferFeePercentage = adminContext?.state?.prices?.transferFeePercentage || PRICING_CONFIG.transferFeePercentage;
-  
-  // Use admin novels or fallback to static catalog
-  const allNovelas = adminNovels.map(novel => ({
-    id: novel.id,
-    titulo: novel.titulo,
-    genero: novel.genero,
-    capitulos: novel.capitulos,
-    año: novel.año,
-    descripcion: novel.descripcion
-  }));
-
-  const phoneNumber = '+5354690878';
-
-  // ... rest of NovelasModal implementation
-  
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      {/* Modal content */}
-    </div>
-  );
-}`;
-  };
-
-  const generatePriceCardFile = () => {
-    return `import React from 'react';
-import { DollarSign, Tv, Film, Star, CreditCard } from 'lucide-react';
-import { AdminContext } from '../context/AdminContext';
-
-// Current prices configuration
-const CURRENT_PRICES = ${JSON.stringify(state.prices, null, 2)};
-
-interface PriceCardProps {
-  type: 'movie' | 'tv';
-  selectedSeasons?: number[];
-  episodeCount?: number;
-  isAnime?: boolean;
-}
-
-export function PriceCard({ type, selectedSeasons = [], episodeCount = 0, isAnime = false }: PriceCardProps) {
-  const adminContext = React.useContext(AdminContext);
-  
-  // Get prices from admin context with real-time updates or fallback to static config
-  const moviePrice = adminContext?.state?.prices?.moviePrice || CURRENT_PRICES.moviePrice;
-  const seriesPrice = adminContext?.state?.prices?.seriesPrice || CURRENT_PRICES.seriesPrice;
-  const transferFeePercentage = adminContext?.state?.prices?.transferFeePercentage || CURRENT_PRICES.transferFeePercentage;
-  
-  // ... rest of PriceCard implementation
-}`;
-  };
-
-  const generateAdminPanelFile = () => {
-    return `import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  Settings, 
-  DollarSign, 
-  MapPin, 
-  BookOpen, 
-  Bell, 
-  Download, 
-  Upload, 
-  Trash2, 
-  Plus, 
-  Edit3, 
-  Save, 
-  X, 
-  Eye, 
-  EyeOff, 
-  Lock,
-  Home,
-  AlertCircle,
-  CheckCircle,
-  Info,
-  AlertTriangle
-} from 'lucide-react';
-import { useAdmin } from '../context/AdminContext';
-import type { PriceConfig, DeliveryZone, Novel, Notification } from '../context/AdminContext';
-
-// Current system configuration
-const SYSTEM_CONFIG = {
-  prices: ${JSON.stringify(state.prices, null, 2)},
-  deliveryZones: ${JSON.stringify(state.deliveryZones, null, 2)},
-  novels: ${JSON.stringify(state.novels, null, 2)},
-  lastUpdate: '${new Date().toISOString()}'
-};
-
-export function AdminPanel() {
-  // ... AdminPanel implementation with current configuration
-}`;
-  };
-
   if (!state.isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 flex items-center justify-center p-4">
@@ -494,52 +223,80 @@ export function AdminPanel() {
             <p className="text-blue-100 mt-2">TV a la Carta</p>
           </div>
           
-          <form onSubmit={handleLogin} className="p-6 space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Contraseña de Administrador
-              </label>
-              <div className="relative">
+          <div className="p-6">
+            {/* Credentials Info */}
+            <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
+              <div className="flex items-center mb-2">
+                <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
+                <h3 className="font-semibold text-green-800">Credenciales Actualizadas</h3>
+              </div>
+              <div className="space-y-1 text-sm text-green-700">
+                <p><strong>Usuario:</strong> root</p>
+                <p><strong>Contraseña:</strong> video</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleLogin} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Usuario
+                </label>
                 <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-12"
-                  placeholder="Ingrese la contraseña"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="root"
                   required
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
               </div>
-              {loginError && (
-                <p className="mt-2 text-sm text-red-600 flex items-center">
-                  <AlertCircle className="h-4 w-4 mr-1" />
-                  {loginError}
-                </p>
-              )}
-            </div>
-            
-            <button
-              type="submit"
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3 px-4 rounded-lg font-medium transition-all duration-300 transform hover:scale-105"
-            >
-              Iniciar Sesión
-            </button>
-            
-            <button
-              type="button"
-              onClick={() => navigate('/')}
-              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center"
-            >
-              <Home className="h-5 w-5 mr-2" />
-              Volver al Inicio
-            </button>
-          </form>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Contraseña
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-12"
+                    placeholder="video"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
+                {loginError && (
+                  <p className="mt-2 text-sm text-red-600 flex items-center">
+                    <AlertCircle className="h-4 w-4 mr-1" />
+                    {loginError}
+                  </p>
+                )}
+              </div>
+              
+              <button
+                type="submit"
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-3 px-4 rounded-lg font-medium transition-all duration-300 transform hover:scale-105"
+              >
+                Iniciar Sesión
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => navigate('/')}
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center"
+              >
+                <Home className="h-5 w-5 mr-2" />
+                Volver al Inicio
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     );
@@ -553,7 +310,10 @@ export function AdminPanel() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
               <Settings className="h-8 w-8 text-blue-600 mr-3" />
-              <h1 className="text-2xl font-bold text-gray-900">Panel de Administración</h1>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Panel de Administración</h1>
+                <p className="text-sm text-gray-600">Credenciales: root / video</p>
+              </div>
             </div>
             <div className="flex items-center space-x-4">
               <button
@@ -621,11 +381,34 @@ export function AdminPanel() {
                   Exportar Backup
                 </button>
                 <button
-                  onClick={exportCompleteSystem}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center"
+                  onClick={exportClonedSystem}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center"
                 >
-                  <Download className="h-4 w-4 mr-2" />
-                  Exportar Sistema
+                  <Copy className="h-4 w-4 mr-2" />
+                  Exportar Sistema Clonado
+                </button>
+              </div>
+            </div>
+
+            {/* System Clone Info */}
+            <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200">
+              <div className="flex items-center mb-3">
+                <FileText className="h-6 w-6 text-purple-600 mr-3" />
+                <h3 className="text-lg font-bold text-purple-900">Sistema Clonado Disponible</h3>
+              </div>
+              <div className="space-y-2 text-sm text-purple-700">
+                <p>✅ <strong>Credenciales actualizadas:</strong> root / video</p>
+                <p>✅ <strong>Sincronización en tiempo real</strong> con configuraciones actuales</p>
+                <p>✅ <strong>Código fuente completo</strong> de todos los componentes</p>
+                <p>✅ <strong>Configuraciones aplicadas</strong> automáticamente</p>
+              </div>
+              <div className="mt-4">
+                <button
+                  onClick={exportClonedSystem}
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-6 py-3 rounded-lg font-medium transition-all transform hover:scale-105 flex items-center"
+                >
+                  <Download className="h-5 w-5 mr-2" />
+                  Descargar Sistema Clonado Completo
                 </button>
               </div>
             </div>
