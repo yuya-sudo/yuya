@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search, Filter } from 'lucide-react';
 import { tmdbService } from '../services/tmdb';
+import { performanceOptimizer } from '../utils/performance';
 import { MovieCard } from '../components/MovieCard';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorMessage } from '../components/ErrorMessage';
@@ -20,6 +21,12 @@ export function SearchPage() {
   const [totalResults, setTotalResults] = useState(0);
 
   const query = searchParams.get('q') || '';
+
+  // Debounced search function
+  const debouncedSearch = React.useMemo(
+    () => performanceOptimizer.debounce(performSearch, 300),
+    []
+  );
 
   const searchTypeLabels = {
     all: 'Todo',
@@ -96,10 +103,9 @@ export function SearchPage() {
 
   useEffect(() => {
     if (query) {
-      setPage(1);
-      performSearch(query, searchType, 1, false);
+      debouncedSearch(query, searchType, 1, false);
     }
-  }, [query, searchType]);
+  }, [query, searchType, debouncedSearch]);
 
   const handleTypeChange = (newType: SearchType) => {
     setSearchType(newType);

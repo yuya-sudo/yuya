@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Star, Calendar, Play, Pause } from 'lucide-react';
+import { OptimizedImage } from './OptimizedImage';
 import { tmdbService } from '../services/tmdb';
 import { contentSyncService } from '../services/contentSync';
+import { performanceOptimizer } from '../utils/performance';
 import { IMAGE_BASE_URL, BACKDROP_SIZE } from '../config/api';
 import type { Movie, TVShow, Video } from '../types/movie';
 
@@ -16,8 +18,30 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [progress, setProgress] = useState(0);
   const [itemVideos, setItemVideos] = useState<{ [key: number]: Video[] }>({});
+  const [preloadedImages, setPreloadedImages] = useState<Set<string>>(new Set());
 
   const AUTOPLAY_INTERVAL = 6000; // 6 seconds
+
+  // Preload next images for smooth transitions
+  useEffect(() => {
+    const preloadNextImages = () => {
+      const nextIndex = (currentIndex + 1) % items.length;
+      const prevIndex = (currentIndex - 1 + items.length) % items.length;
+      
+      [nextIndex, prevIndex].forEach(index => {
+        const item = items[index];
+        if (item?.backdrop_path) {
+          const imageUrl = `${IMAGE_BASE_URL}/${BACKDROP_SIZE}${item.backdrop_path}`;
+          if (!preloadedImages.has(imageUrl)) {
+            performanceOptimizer.preloadResource(imageUrl, 'image');
+            setPreloadedImages(prev => new Set([...prev, imageUrl]));
+          }
+        }
+      });
+    };
+
+    preloadNextImages();
+  }, [currentIndex, items, preloadedImages]);
 
   // Cargar videos para cada item
   useEffect(() => {
@@ -81,12 +105,12 @@ export function HeroCarousel({ items }: HeroCarouselProps) {
     setProgress(0);
   }, [items.length, isTransitioning]);
 
-  const goToSlide = useCallback((index: number) => {
+  const goToSlide = useCallback(performanceOptimizer.throttle((index: number) => {
     if (isTransitioning || index === currentIndex) return;
     setIsTransitioning(true);
     setCurrentIndex(index);
     setProgress(0);
-  }, [currentIndex, isTransitioning]);
+  }, 100), [currentIndex, isTransitioning]);
 
   // Handle keyboard navigation
   useEffect(() => {

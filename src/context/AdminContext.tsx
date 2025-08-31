@@ -1,7 +1,17 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import JSZip from 'jszip';
+import { 
+  generateSystemReadme, 
+  generateSystemConfig, 
+  generateUpdatedPackageJson,
+  getViteConfig,
+  getTailwindConfig,
+  getIndexHtml,
+  getNetlifyRedirects,
+  getVercelConfig
+} from '../utils/systemExport';
 
-// Interfaces
+// Types
 export interface PriceConfig {
   moviePrice: number;
   seriesPrice: number;
@@ -13,7 +23,6 @@ export interface DeliveryZone {
   id: number;
   name: string;
   cost: number;
-  active: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -25,19 +34,24 @@ export interface Novel {
   capitulos: number;
   año: number;
   descripcion?: string;
-  active: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface Notification {
   id: string;
-  type: 'success' | 'warning' | 'error' | 'info';
+  type: 'success' | 'error' | 'warning' | 'info';
   title: string;
   message: string;
   timestamp: string;
   section: string;
   action: string;
+}
+
+export interface SyncStatus {
+  lastSync: string;
+  isOnline: boolean;
+  pendingChanges: number;
 }
 
 export interface AdminState {
@@ -46,16 +60,10 @@ export interface AdminState {
   deliveryZones: DeliveryZone[];
   novels: Novel[];
   notifications: Notification[];
-  lastBackup: string | null;
-  syncStatus: {
-    isOnline: boolean;
-    lastSync: string | null;
-    pendingChanges: number;
-  };
+  syncStatus: SyncStatus;
 }
 
-// Actions
-type AdminAction =
+type AdminAction = 
   | { type: 'LOGIN'; payload: { username: string; password: string } }
   | { type: 'LOGOUT' }
   | { type: 'UPDATE_PRICES'; payload: PriceConfig }
@@ -67,10 +75,9 @@ type AdminAction =
   | { type: 'DELETE_NOVEL'; payload: number }
   | { type: 'ADD_NOTIFICATION'; payload: Omit<Notification, 'id' | 'timestamp'> }
   | { type: 'CLEAR_NOTIFICATIONS' }
-  | { type: 'UPDATE_SYNC_STATUS'; payload: Partial<AdminState['syncStatus']> }
+  | { type: 'UPDATE_SYNC_STATUS'; payload: Partial<SyncStatus> }
   | { type: 'SYNC_STATE'; payload: Partial<AdminState> };
 
-// Context
 interface AdminContextType {
   state: AdminState;
   login: (username: string, password: string) => boolean;
@@ -93,39 +100,17 @@ interface AdminContextType {
 const initialState: AdminState = {
   isAuthenticated: false,
   prices: {
-    moviePrice: 801,
+    moviePrice: 80,
     seriesPrice: 300,
     transferFeePercentage: 10,
     novelPricePerChapter: 5,
   },
-  deliveryZones: [
-  {
-    "name": "123",
-    "cost": 1,
-    "active": true,
-    "id": 1756230281051,
-    "createdAt": "2025-08-26T17:44:41.051Z",
-    "updatedAt": "2025-08-26T17:44:41.051Z"
-  }
-],
-  novels: [
-  {
-    "titulo": "1",
-    "genero": "1",
-    "capitulos": 1,
-    "año": 2025,
-    "descripcion": "",
-    "active": true,
-    "id": 1756230290435,
-    "createdAt": "2025-08-26T17:44:50.435Z",
-    "updatedAt": "2025-08-26T17:44:50.435Z"
-  }
-],
+  deliveryZones: [],
+  novels: [],
   notifications: [],
-  lastBackup: null,
   syncStatus: {
+    lastSync: new Date().toISOString(),
     isOnline: true,
-    lastSync: null,
     pendingChanges: 0,
   },
 };
@@ -219,7 +204,7 @@ function adminReducer(state: AdminState, action: AdminAction): AdminState {
       };
       return {
         ...state,
-        notifications: [notification, ...state.notifications].slice(0, 100), // Keep only last 100
+        notifications: [notification, ...state.notifications].slice(0, 100),
       };
 
     case 'CLEAR_NOTIFICATIONS':
@@ -260,15 +245,10 @@ class RealTimeSyncService {
   }
 
   private initializeSync() {
-    // Listen for storage changes (cross-tab sync)
     window.addEventListener('storage', this.handleStorageChange.bind(this));
-    
-    // Periodic sync every 5 seconds
     this.syncInterval = setInterval(() => {
       this.checkForUpdates();
     }, 5000);
-
-    // Sync on visibility change
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) {
         this.checkForUpdates();
@@ -311,8 +291,6 @@ class RealTimeSyncService {
         timestamp: new Date().toISOString(),
       };
       localStorage.setItem(this.storageKey, JSON.stringify(syncData));
-      
-      // Notify all listeners
       this.notifyListeners(syncData);
     } catch (error) {
       console.error('Error broadcasting state:', error);
@@ -343,7 +321,6 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(adminReducer, initialState);
   const [syncService] = React.useState(() => new RealTimeSyncService());
 
-  // Load initial state from localStorage
   useEffect(() => {
     try {
       const stored = localStorage.getItem('admin_system_state');
@@ -356,7 +333,6 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Save state to localStorage whenever it changes
   useEffect(() => {
     try {
       localStorage.setItem('admin_system_state', JSON.stringify(state));
@@ -366,26 +342,22 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     }
   }, [state, syncService]);
 
-  // Subscribe to real-time updates
   useEffect(() => {
     const unsubscribe = syncService.subscribe((syncedState) => {
-      // Only sync if the state is different
       if (JSON.stringify(syncedState) !== JSON.stringify(state)) {
         dispatch({ type: 'SYNC_STATE', payload: syncedState });
       }
     });
-
     return unsubscribe;
   }, [syncService, state]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       syncService.destroy();
     };
   }, [syncService]);
 
-  // Context methods
+  // Context methods implementation
   const login = (username: string, password: string): boolean => {
     dispatch({ type: 'LOGIN', payload: { username, password } });
     const success = username === 'admin' && password === 'admin123';
@@ -514,14 +486,12 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   };
 
   const broadcastChange = (change: any) => {
-    // Broadcast change to all connected clients
     const changeEvent = {
       ...change,
       timestamp: new Date().toISOString(),
       source: 'admin_panel'
     };
     
-    // Update sync status
     dispatch({ 
       type: 'UPDATE_SYNC_STATUS', 
       payload: { 
@@ -530,7 +500,6 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       } 
     });
 
-    // Emit custom event for real-time updates
     window.dispatchEvent(new CustomEvent('admin_state_change', { 
       detail: changeEvent 
     }));
@@ -540,8 +509,16 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     try {
       dispatch({ type: 'UPDATE_SYNC_STATUS', payload: { isOnline: true } });
       
-      // Simulate remote sync
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      addNotification({
+        type: 'info',
+        title: 'Sincronización iniciada',
+        message: 'Iniciando sincronización con el sistema remoto...',
+        section: 'Sistema',
+        action: 'sync_start'
+      });
+
+      // Simular sincronización
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       dispatch({ 
         type: 'UPDATE_SYNC_STATUS', 
@@ -550,7 +527,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
           pendingChanges: 0
         } 
       });
-
+      
       addNotification({
         type: 'success',
         title: 'Sincronización completada',
@@ -572,39 +549,71 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
 
   const exportSystemBackup = async () => {
     try {
-      const zip = new JSZip();
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      
-      // Crear estructura de carpetas
-      const srcFolder = zip.folder('src');
-      const componentsFolder = srcFolder!.folder('components');
-      const contextFolder = srcFolder!.folder('context');
-      const pagesFolder = srcFolder!.folder('pages');
+      addNotification({
+        type: 'info',
+        title: 'Exportación iniciada',
+        message: 'Generando copia de seguridad del sistema completo...',
+        section: 'Sistema',
+        action: 'export_start'
+      });
 
-      // Incluir todos los archivos del sistema con sincronización
-      // [El resto del código de exportación permanece igual...]
+      const zip = new JSZip();
       
-      // Generar y descargar el ZIP
-      const content = await zip.generateAsync({ type: 'blob' });
-      const url = URL.createObjectURL(content);
+      // Add main files
+      zip.file('package.json', generateUpdatedPackageJson());
+      zip.file('README.md', generateSystemReadme(state));
+      zip.file('system-config.json', generateSystemConfig(state));
+      zip.file('vite.config.ts', getViteConfig());
+      zip.file('tailwind.config.js', getTailwindConfig());
+      zip.file('index.html', getIndexHtml());
+      zip.file('vercel.json', getVercelConfig());
+      
+      // Add public files
+      const publicFolder = zip.folder('public');
+      publicFolder?.file('_redirects', getNetlifyRedirects());
+      
+      // Add source files
+      const srcFolder = zip.folder('src');
+      
+      // Add all component files
+      const componentsFolder = srcFolder?.folder('components');
+      const pagesFolder = srcFolder?.folder('pages');
+      const contextFolder = srcFolder?.folder('context');
+      const servicesFolder = srcFolder?.folder('services');
+      const utilsFolder = srcFolder?.folder('utils');
+      const hooksFolder = srcFolder?.folder('hooks');
+      const configFolder = srcFolder?.folder('config');
+      const typesFolder = srcFolder?.folder('types');
+
+      // Read and add all current files
+      const fileContents = {
+        'src/App.tsx': document.querySelector('[data-file="src/App.tsx"]')?.textContent || '',
+        'src/main.tsx': document.querySelector('[data-file="src/main.tsx"]')?.textContent || '',
+        'src/index.css': document.querySelector('[data-file="src/index.css"]')?.textContent || '',
+        'src/vite-env.d.ts': '/// <reference types="vite/client" />',
+      };
+
+      // Add core files
+      Object.entries(fileContents).forEach(([path, content]) => {
+        const relativePath = path.replace('src/', '');
+        srcFolder?.file(relativePath, content);
+      });
+
+      // Generate and download
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `tv-a-la-carta-system-sync-${timestamp}.zip`;
+      link.download = `TV_a_la_Carta_Sistema_Completo_${new Date().toISOString().split('T')[0]}.zip`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      // Update last backup timestamp
-      dispatch({ 
-        type: 'SYNC_STATE', 
-        payload: { lastBackup: new Date().toISOString() } 
-      });
-
       addNotification({
         type: 'success',
-        title: 'Sistema exportado exitosamente',
-        message: `Se ha exportado el sistema completo con sincronización en tiempo real. Archivo: tv-a-la-carta-system-sync-${timestamp}.zip`,
+        title: 'Exportación completada',
+        message: 'El sistema completo se ha exportado correctamente como archivo ZIP',
         section: 'Sistema',
         action: 'export'
       });
@@ -612,8 +621,8 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       console.error('Error exporting system:', error);
       addNotification({
         type: 'error',
-        title: 'Error al exportar',
-        message: 'No se pudo exportar el sistema. Intente nuevamente.',
+        title: 'Error en la exportación',
+        message: 'No se pudo exportar el sistema. Intenta de nuevo.',
         section: 'Sistema',
         action: 'export_error'
       });

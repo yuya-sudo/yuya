@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Film, Filter } from 'lucide-react';
+import { useOptimizedContent } from '../hooks/useOptimizedContent';
 import { tmdbService } from '../services/tmdb';
 import { MovieCard } from '../components/MovieCard';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -9,12 +10,7 @@ import type { Movie } from '../types/movie';
 type MovieCategory = 'popular' | 'top_rated' | 'upcoming';
 
 export function Movies() {
-  const [movies, setMovies] = useState<Movie[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [category, setCategory] = useState<MovieCategory>('popular');
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
 
   const categoryTitles = {
     popular: 'Populares',
@@ -22,60 +18,24 @@ export function Movies() {
     upcoming: 'Próximos Estrenos'
   };
 
-  const fetchMovies = async (selectedCategory: MovieCategory, pageNum: number, append: boolean = false) => {
-    try {
-      if (!append) setLoading(true);
-      
-      let response;
-      switch (selectedCategory) {
-        case 'top_rated':
-          response = await tmdbService.getTopRatedMovies(pageNum);
-          break;
-        case 'upcoming':
-          response = await tmdbService.getUpcomingMovies(pageNum);
-          break;
-        default:
-          response = await tmdbService.getPopularMovies(pageNum);
-      }
-
-      // Remove duplicates to ensure fresh content
-      const uniqueResults = tmdbService.removeDuplicates(response.results);
-
-      if (append) {
-        setMovies(prev => tmdbService.removeDuplicates([...prev, ...uniqueResults]));
-      } else {
-        setMovies(uniqueResults);
-      }
-      
-      setHasMore(pageNum < response.total_pages);
-    } catch (err) {
-      setError('Error al cargar las películas. Por favor, intenta de nuevo.');
-      console.error('Error fetching movies:', err);
-    } finally {
-      setLoading(false);
+  const getFetchFunction = (selectedCategory: MovieCategory) => {
+    switch (selectedCategory) {
+      case 'top_rated':
+        return tmdbService.getTopRatedMovies.bind(tmdbService);
+      case 'upcoming':
+        return tmdbService.getUpcomingMovies.bind(tmdbService);
+      default:
+        return tmdbService.getPopularMovies.bind(tmdbService);
     }
   };
 
-  useEffect(() => {
-    setPage(1);
-    fetchMovies(category, 1, false);
-    
-    // Auto-refresh content daily
-    const dailyRefresh = setInterval(() => {
-      fetchMovies(category, 1, false);
-    }, 24 * 60 * 60 * 1000); // 24 hours
-    
-    return () => clearInterval(dailyRefresh);
-  }, [category]);
+  const { data: movies, loading, error, hasMore, loadMore } = useOptimizedContent(
+    getFetchFunction(category),
+    [category]
+  );
 
   const handleCategoryChange = (newCategory: MovieCategory) => {
     setCategory(newCategory);
-  };
-
-  const loadMore = () => {
-    const nextPage = page + 1;
-    setPage(nextPage);
-    fetchMovies(category, nextPage, true);
   };
 
   if (loading && movies.length === 0) {
