@@ -8,11 +8,13 @@ import { CastSection } from '../components/CastSection';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { useCart } from '../context/CartContext';
+import { AdminContext } from '../context/AdminContext';
 import { IMAGE_BASE_URL, BACKDROP_SIZE } from '../config/api';
 import type { TVShowDetails, Video, CartItem, Season, CastMember } from '../types/movie';
 
 export function TVDetail() {
   const { id } = useParams<{ id: string }>();
+  const adminContext = React.useContext(AdminContext);
   const [tvShow, setTVShow] = useState<TVShowDetails | null>(null);
   const [videos, setVideos] = useState<Video[]>([]);
   const [cast, setCast] = useState<CastMember[]>([]);
@@ -22,10 +24,14 @@ export function TVDetail() {
   const [showSeasonSelector, setShowSeasonSelector] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showEpisodeWarning, setShowEpisodeWarning] = useState(false);
   const { addItem, removeItem, updateSeasons, isInCart, getItemSeasons } = useCart();
 
   const tvId = parseInt(id || '0');
   const inCart = isInCart(tvId);
+
+  // Get current prices from admin context
+  const seriesPrice = adminContext?.state?.prices?.seriesPrice || 300;
 
   // Detectar si es anime
   const isAnime = tvShow?.original_language === 'ja' || 
@@ -161,6 +167,19 @@ export function TVDetail() {
       }
     }
   }, [tvShow, inCart]);
+
+  // Check for high episode count seasons
+  useEffect(() => {
+    if (tvShow && selectedSeasons.length > 0) {
+      const hasHighEpisodeSeasons = tvShow.seasons
+        .filter(season => selectedSeasons.includes(season.season_number))
+        .some(season => season.episode_count > 50);
+      
+      setShowEpisodeWarning(hasHighEpisodeSeasons);
+    } else {
+      setShowEpisodeWarning(false);
+    }
+  }, [tvShow, selectedSeasons]);
 
   if (loading) {
     return (
@@ -343,6 +362,34 @@ export function TVDetail() {
               {/* Season Selection */}
               {hasMultipleSeasons && (
                 <div className="mb-8">
+                  {/* Episode count warning */}
+                  {showEpisodeWarning && (
+                    <div className="mb-4 p-4 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl border-2 border-orange-300">
+                      <div className="flex items-center mb-3">
+                        <div className="bg-orange-100 p-2 rounded-lg mr-3">
+                          <span className="text-lg">⚠️</span>
+                        </div>
+                        <h4 className="font-bold text-orange-900">Información Importante</h4>
+                      </div>
+                      <div className="space-y-2 text-orange-800 ml-11">
+                        <p className="font-semibold">
+                          📺 Esta serie tiene temporadas con más de 50 capítulos
+                        </p>
+                        <p className="text-sm">
+                          💰 Hasta 50 capítulos se contempla como una temporada: ${seriesPrice.toLocaleString()} CUP
+                        </p>
+                        <p className="text-sm">
+                          📞 Para temporadas con más de 50 capítulos, contacte directamente con TV a la Carta para acordar el precio
+                        </p>
+                        <div className="mt-3 p-3 bg-white rounded-lg border border-orange-200">
+                          <p className="text-sm font-medium text-orange-900">
+                            📱 Contacto: +5354690878
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-100 mb-4">
                     <div className="flex items-center mb-2">
                       <div className="bg-purple-100 p-2 rounded-lg mr-3">
@@ -391,7 +438,11 @@ export function TVDetail() {
                         .map((season) => (
                           <label
                             key={season.id}
-                            className="flex items-center p-3 hover:bg-purple-50 rounded-xl cursor-pointer transition-colors border border-gray-100 hover:border-purple-200"
+                            className={`flex items-center p-3 hover:bg-purple-50 rounded-xl cursor-pointer transition-colors border hover:border-purple-200 ${
+                              season.episode_count > 50 
+                                ? 'border-orange-300 bg-orange-50' 
+                                : 'border-gray-100'
+                            }`}
                           >
                             <input
                               type="checkbox"
@@ -402,10 +453,20 @@ export function TVDetail() {
                             <div className="flex-1">
                               <p className="font-semibold text-gray-900">
                                 {season.name}
+                                {season.episode_count > 50 && (
+                                  <span className="ml-2 bg-orange-200 text-orange-800 px-2 py-1 rounded-full text-xs font-bold">
+                                    +50 cap.
+                                  </span>
+                                )}
                               </p>
                               <p className="text-sm text-gray-600 mt-1">
                                 {season.episode_count} episodios
                                 {season.air_date && ` • ${new Date(season.air_date).getFullYear()}`}
+                                {season.episode_count > 50 && (
+                                  <span className="block text-xs text-orange-600 font-medium mt-1">
+                                    ⚠️ Requiere contacto directo para precio
+                                  </span>
+                                )}
                               </p>
                             </div>
                           </label>
