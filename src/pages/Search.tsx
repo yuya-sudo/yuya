@@ -98,7 +98,7 @@ export function SearchPage() {
   // Debounced search function
   const debouncedSearch = React.useMemo(
     () => performanceOptimizer.debounce(performSearch, 300),
-    []
+    [performSearch]
   );
 
   useEffect(() => {
