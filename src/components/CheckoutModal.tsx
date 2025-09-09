@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, User, MapPin, Phone, Copy, Check, MessageCircle, Calculator, DollarSign, CreditCard, Navigation, Clock, Car, Bike, MapPin as LocationIcon } from 'lucide-react';
+import { useAdmin } from '../context/AdminContext';
 
 // ZONAS DE ENTREGA EMBEBIDAS - Generadas automáticamente
 const EMBEDDED_DELIVERY_ZONES = [];
@@ -68,6 +69,7 @@ const BASE_DELIVERY_ZONES = {
 };
 
 export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: CheckoutModalProps) {
+  const { state: adminState } = useAdmin();
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
     fullName: '',
     phone: '',
@@ -84,11 +86,11 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
     walking?: DistanceInfo;
     bicycling?: DistanceInfo;
   }>({});
-  const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
+    'Entrega en Local > TV a la Carta > Local TV a la Carta': 0
   const [userCoordinates, setUserCoordinates] = useState<{ lat: number; lng: number } | null>(null);
 
   // Get delivery zones from embedded configuration
-  const embeddedZonesMap = EMBEDDED_DELIVERY_ZONES.reduce((acc, zone) => {
+  const embeddedZonesMap = adminState.deliveryZones.reduce((acc, zone) => {
     acc[zone.name] = zone.cost;
     return acc;
   }, {} as { [key: string]: number });
@@ -96,15 +98,14 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
   // Combine embedded zones with base zones
   const allZones = { 
     ...BASE_DELIVERY_ZONES, 
-    ...embeddedZonesMap,
-    'Entrega en Local > TV a la Carta > Reparto Nuevo Vista Alegre': 0
+    ...embeddedZonesMap
   };
   const deliveryCost = allZones[deliveryZone as keyof typeof allZones] || 0;
   const finalTotal = total + deliveryCost;
-  const isLocalPickup = deliveryZone === 'Entrega en Local > TV a la Carta > Reparto Nuevo Vista Alegre';
+  const isLocalPickup = deliveryZone === 'Entrega en Local > TV a la Carta > Local TV a la Carta';
 
   // Get current transfer fee percentage from embedded prices
-  const transferFeePercentage = EMBEDDED_PRICES.transferFeePercentage;
+  const transferFeePercentage = adminState.prices.transferFeePercentage;
 
   const isFormValid = customerInfo.fullName.trim() !== '' && 
                      customerInfo.phone.trim() !== '' && 
@@ -195,9 +196,9 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
     const cashItems = items.filter(item => item.paymentType === 'cash');
     const transferItems = items.filter(item => item.paymentType === 'transfer');
     
-    // Get current prices from embedded configuration
-    const moviePrice = EMBEDDED_PRICES.moviePrice;
-    const seriesPrice = EMBEDDED_PRICES.seriesPrice;
+    // Get current prices from admin state
+    const moviePrice = adminState.prices.moviePrice;
+    const seriesPrice = adminState.prices.seriesPrice;
     
     const cashTotal = cashItems.reduce((sum, item) => {
       const basePrice = item.type === 'movie' ? moviePrice : (item.selectedSeasons?.length || 1) * seriesPrice;
@@ -216,8 +217,8 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
     const orderId = generateOrderId();
     const { cashTotal, transferTotal } = calculateTotals();
     const transferFee = transferTotal - items.filter(item => item.paymentType === 'transfer').reduce((sum, item) => {
-      const moviePrice = EMBEDDED_PRICES.moviePrice;
-      const seriesPrice = EMBEDDED_PRICES.seriesPrice;
+      const moviePrice = adminState.prices.moviePrice;
+      const seriesPrice = adminState.prices.seriesPrice;
       const basePrice = item.type === 'movie' ? moviePrice : (item.selectedSeasons?.length || 1) * seriesPrice;
       return sum + basePrice;
     }, 0);
@@ -229,8 +230,8 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
           ? `\n  📺 Temporadas: ${item.selectedSeasons.sort((a, b) => a - b).join(', ')}` 
           : '';
         const itemType = item.type === 'movie' ? 'Película' : 'Serie';
-        const moviePrice = EMBEDDED_PRICES.moviePrice;
-        const seriesPrice = EMBEDDED_PRICES.seriesPrice;
+        const moviePrice = adminState.prices.moviePrice;
+        const seriesPrice = adminState.prices.seriesPrice;
         const basePrice = item.type === 'movie' ? moviePrice : (item.selectedSeasons?.length || 1) * seriesPrice;
         const finalPrice = item.paymentType === 'transfer' ? Math.round(basePrice * (1 + transferFeePercentage / 100)) : basePrice;
         const paymentTypeText = item.paymentType === 'transfer' ? `Transferencia (+${transferFeePercentage}%)` : 'Efectivo';
@@ -415,21 +416,21 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
                 <div className="bg-white rounded-xl p-4 border border-gray-200">
                   <div className="text-center">
                     <div className="text-2xl sm:text-3xl font-bold text-blue-600 mb-2">
-                      $${total.toLocaleString()} CUP
+                      ${total.toLocaleString()} CUP
                     </div>
                     <div className="text-sm text-gray-600">Subtotal Contenido</div>
-                    <div className="text-xs text-gray-500 mt-1">${items.length} elementos</div>
+                    <div className="text-xs text-gray-500 mt-1">{items.length} elementos</div>
                   </div>
                 </div>
                 
                 <div className="bg-white rounded-xl p-4 border border-gray-200">
                   <div className="text-center">
                     <div className="text-2xl sm:text-3xl font-bold text-green-600 mb-2">
-                      $${deliveryCost.toLocaleString()} CUP
+                      ${deliveryCost.toLocaleString()} CUP
                     </div>
                     <div className="text-sm text-gray-600">Costo de Entrega</div>
                     <div className="text-xs text-gray-500 mt-1">
-                      ${deliveryZone.split(' > ')[2] || 'Seleccionar zona'}
+                      {deliveryZone.split(' > ')[2] || 'Seleccionar zona'}
                     </div>
                   </div>
                 </div>
@@ -439,7 +440,7 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
                 <div className="flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0">
                   <span className="text-lg sm:text-xl font-bold text-gray-900">Total Final:</span>
                   <span className="text-2xl sm:text-3xl font-bold text-green-600">
-                    $${finalTotal.toLocaleString()} CUP
+                    ${finalTotal.toLocaleString()} CUP
                   </span>
                 </div>
               </div>
@@ -566,7 +567,7 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
                           </div>
                           <div className="bg-white rounded-lg px-3 py-2 border border-green-300">
                             <span className="text-lg font-bold text-green-600">
-                              $${deliveryCost.toLocaleString()} CUP
+                              ${deliveryCost.toLocaleString()} CUP
                             </span>
                           </div>
                         </div>

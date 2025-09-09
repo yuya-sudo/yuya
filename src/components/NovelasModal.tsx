@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Download, MessageCircle, Phone, BookOpen, Info, Check, DollarSign, CreditCard, Calculator, Search, Filter, SortAsc, SortDesc, Smartphone } from 'lucide-react';
+import { useAdmin } from '../context/AdminContext';
 
 // CATÁLOGO DE NOVELAS EMBEBIDO - Generado automáticamente
 const EMBEDDED_NOVELS = [];
@@ -28,6 +29,7 @@ interface NovelasModalProps {
 }
 
 export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
+  const { state: adminState } = useAdmin();
   const [selectedNovelas, setSelectedNovelas] = useState<number[]>([]);
   const [novelasWithPayment, setNovelasWithPayment] = useState<Novela[]>([]);
   const [showNovelList, setShowNovelList] = useState(false);
@@ -37,10 +39,10 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
   const [sortBy, setSortBy] = useState<'titulo' | 'año' | 'capitulos'>('titulo');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
-  // Get novels and prices from embedded configuration
-  const adminNovels = EMBEDDED_NOVELS;
-  const novelPricePerChapter = EMBEDDED_PRICES.novelPricePerChapter;
-  const transferFeePercentage = EMBEDDED_PRICES.transferFeePercentage;
+  // Get novels and prices from admin state
+  const adminNovels = adminState.novels;
+  const novelPricePerChapter = adminState.prices.novelPricePerChapter;
+  const transferFeePercentage = adminState.prices.transferFeePercentage;
   
   // Base novels list
   const defaultNovelas: Novela[] = [
@@ -174,7 +176,7 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
   const generateNovelListText = () => {
     let listText = "📚 CATÁLOGO DE NOVELAS DISPONIBLES\n";
     listText += "TV a la Carta - Novelas Completas\n\n";
-    listText += `💰 Precio: $${novelPricePerChapter} CUP por capítulo\n`;
+    listText += `💰 Precio: ${novelPricePerChapter} CUP por capítulo\n`;
     listText += `💳 Recargo transferencia: ${transferFeePercentage}%\n`;
     listText += "📱 Contacto: +5354690878\n\n";
     listText += "═══════════════════════════════════\n\n";
@@ -519,7 +521,7 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
                   
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
                     <div className="text-sm text-purple-700">
-                      Mostrando ${filteredNovelas.length} de ${allNovelas.length} novelas
+                      Mostrando {filteredNovelas.length} de {allNovelas.length} novelas
                       {(searchTerm || selectedGenre || selectedYear) && (
                         <span className="ml-2 text-purple-600">• Filtros activos</span>
                       )}
@@ -539,7 +541,7 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
                 <div className="bg-gradient-to-r from-purple-100 to-pink-100 p-4 border-b border-gray-200">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
                     <h4 className="text-lg font-bold text-gray-900">
-                      Seleccionar Novelas (${selectedNovelas.length} seleccionadas)
+                      Seleccionar Novelas ({selectedNovelas.length} seleccionadas)
                     </h4>
                     <div className="flex space-x-2">
                       <button
@@ -568,19 +570,19 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                       <div className="bg-white rounded-lg p-3 border border-gray-200 text-center">
-                        <div className="text-2xl font-bold text-purple-600">${selectedNovelas.length}</div>
+                        <div className="text-2xl font-bold text-purple-600">{selectedNovelas.length}</div>
                         <div className="text-sm text-gray-600">Novelas</div>
                       </div>
                       <div className="bg-white rounded-lg p-3 border border-gray-200 text-center">
-                        <div className="text-2xl font-bold text-blue-600">${totals.totalCapitulos}</div>
+                        <div className="text-2xl font-bold text-blue-600">{totals.totalCapitulos}</div>
                         <div className="text-sm text-gray-600">Capítulos</div>
                       </div>
                       <div className="bg-white rounded-lg p-3 border border-gray-200 text-center">
-                        <div className="text-2xl font-bold text-green-600">$${totals.cashTotal.toLocaleString()}</div>
+                        <div className="text-2xl font-bold text-green-600">${totals.cashTotal.toLocaleString()}</div>
                         <div className="text-sm text-gray-600">Efectivo</div>
                       </div>
                       <div className="bg-white rounded-lg p-3 border border-gray-200 text-center">
-                        <div className="text-2xl font-bold text-orange-600">$${totals.transferTotal.toLocaleString()}</div>
+                        <div className="text-2xl font-bold text-orange-600">${totals.transferTotal.toLocaleString()}</div>
                         <div className="text-sm text-gray-600">Transferencia</div>
                       </div>
                     </div>
@@ -588,11 +590,11 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
                     <div className="bg-gradient-to-r from-green-100 to-blue-100 rounded-lg p-4 border-2 border-green-300">
                       <div className="flex justify-between items-center">
                         <span className="text-lg font-bold text-gray-900">TOTAL A PAGAR:</span>
-                        <span className="text-2xl font-bold text-green-600">$${totals.grandTotal.toLocaleString()} CUP</span>
+                        <span className="text-2xl font-bold text-green-600">${totals.grandTotal.toLocaleString()} CUP</span>
                       </div>
                       {totals.transferFee > 0 && (
                         <div className="text-sm text-orange-600 mt-2">
-                          Incluye $${totals.transferFee.toLocaleString()} CUP de recargo por transferencia (${transferFeePercentage}%)
+                          Incluye ${totals.transferFee.toLocaleString()} CUP de recargo por transferencia ({transferFeePercentage}%)
                         </div>
                       )}
                     </div>
@@ -628,16 +630,16 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
                             <div className="flex-1">
                               <div className="flex flex-col sm:flex-row sm:items-start justify-between space-y-3 sm:space-y-0">
                                 <div className="flex-1">
-                                  <p className="font-semibold text-gray-900 mb-2">${novela.titulo}</p>
+                                  <p className="font-semibold text-gray-900 mb-2">{novela.titulo}</p>
                                   <div className="flex flex-wrap gap-2 text-sm text-gray-600 mb-3">
                                     <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
-                                      ${novela.genero}
+                                      {novela.genero}
                                     </span>
                                     <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                                      ${novela.capitulos} capítulos
+                                      {novela.capitulos} capítulos
                                     </span>
                                     <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                                      ${novela.año}
+                                      {novela.año}
                                     </span>
                                   </div>
                                   
@@ -665,7 +667,7 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
                                         }`}
                                       >
                                         <CreditCard className="h-3 w-3 inline mr-1" />
-                                        Transferencia (+${transferFeePercentage}%)
+                                        Transferencia (+{transferFeePercentage}%)
                                       </button>
                                     </div>
                                   </div>
@@ -675,17 +677,17 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
                                   <div className={`text-lg font-bold ${
                                     novela.paymentType === 'cash' ? 'text-green-600' : 'text-orange-600'
                                   }`}>
-                                    $${finalCost.toLocaleString()} CUP
+                                    ${finalCost.toLocaleString()} CUP
                                   </div>
                                   {novela.paymentType === 'transfer' && (
                                     <div className="text-xs text-gray-500">
-                                      Base: $${baseCost.toLocaleString()} CUP
+                                      Base: ${baseCost.toLocaleString()} CUP
                                       <br />
-                                      Recargo: +$${(transferCost - baseCost).toLocaleString()} CUP
+                                      Recargo: +${(transferCost - baseCost).toLocaleString()} CUP
                                     </div>
                                   )}
                                   <div className="text-xs text-gray-500 mt-1">
-                                    $${novelPricePerChapter} CUP × ${novela.capitulos} cap.
+                                    ${novelPricePerChapter} CUP × {novela.capitulos} cap.
                                   </div>
                                 </div>
                               </div>
@@ -723,10 +725,10 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
                       <div className="text-center sm:text-left">
                         <p className="font-semibold text-gray-900">
-                          ${selectedNovelas.length} novelas seleccionadas
+                          {selectedNovelas.length} novelas seleccionadas
                         </p>
                         <p className="text-sm text-gray-600">
-                          Total: $${totals.grandTotal.toLocaleString()} CUP
+                          Total: ${totals.grandTotal.toLocaleString()} CUP
                         </p>
                       </div>
                       <button
