@@ -1,7 +1,7 @@
 import JSZip from 'jszip';
 import type { SystemConfig } from '../context/AdminContext';
 
-// Generate complete source code with embedded configuration
+// Generador de código fuente completo con configuración embebida
 export async function generateCompleteSourceCode(systemConfig: SystemConfig): Promise<void> {
   try {
     const zip = new JSZip();
@@ -1172,7 +1172,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     addNotification({
       type: 'success',
       title: 'Zona de entrega agregada',
-      message: \`Se agregó la zona "\${zone.name}" y se sincronizó automáticamente\`,
+      message: `Se agregó la zona "${zone.name}\" y se sincronizó automáticamente`,
       section: 'Zonas de Entrega',
       action: 'create'
     });
@@ -1184,7 +1184,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     addNotification({
       type: 'success',
       title: 'Zona de entrega actualizada',
-      message: \`Se actualizó la zona "\${zone.name}" y se sincronizó automáticamente\`,
+      message: \`Se actualizó la zona "${zone.name}\" y se sincronizó automáticamente`,
       section: 'Zonas de Entrega',
       action: 'update'
     });
@@ -1197,7 +1197,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     addNotification({
       type: 'warning',
       title: 'Zona de entrega eliminada',
-      message: \`Se eliminó la zona "\${zone?.name || 'Desconocida'}" y se sincronizó automáticamente\`,
+      message: \`Se eliminó la zona "${zone?.name || 'Desconocida'}\" y se sincronizó automáticamente`,
       section: 'Zonas de Entrega',
       action: 'delete'
     });
@@ -1209,7 +1209,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     addNotification({
       type: 'success',
       title: 'Novela agregada',
-      message: \`Se agregó la novela "\${novel.titulo}" y se sincronizó automáticamente\`,
+      message: \`Se agregó la novela "${novel.titulo}\" y se sincronizó automáticamente`,
       section: 'Gestión de Novelas',
       action: 'create'
     });
@@ -1221,7 +1221,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     addNotification({
       type: 'success',
       title: 'Novela actualizada',
-      message: \`Se actualizó la novela "\${novel.titulo}" y se sincronizó automáticamente\`,
+      message: \`Se actualizó la novela "${novel.titulo}\" y se sincronizó automáticamente`,
       section: 'Gestión de Novelas',
       action: 'update'
     });
@@ -1234,7 +1234,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     addNotification({
       type: 'warning',
       title: 'Novela eliminada',
-      message: \`Se eliminó la novela "\${novel?.titulo || 'Desconocida'}" y se sincronizó automáticamente\`,
+      message: \`Se eliminó la novela "${novel?.titulo || 'Desconocida'}\" y se sincronizó automáticamente`,
       section: 'Gestión de Novelas',
       action: 'delete'
     });
@@ -1289,7 +1289,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = \`TV_a_la_Carta_Config_\${new Date().toISOString().split('T')[0]}.json\`;
+      link.download = \`TV_a_la_Carta_Config_${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -1691,7 +1691,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'ADD_ITEM', payload: itemWithDefaults });
     
     setToast({
-      message: \`"\${item.title}" agregado al carrito\`,
+      message: `"${item.title}\" agregado al carrito`,
       type: 'success',
       isVisible: true
     });
@@ -1703,7 +1703,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     
     if (item) {
       setToast({
-        message: \`"\${item.title}" retirado del carrito\`,
+        message: `"${item.title}\" retirado del carrito`,
         type: 'error',
         isVisible: true
       });
@@ -2110,21 +2110,21 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
                 <div className="bg-white rounded-xl p-4 border border-gray-200">
                   <div className="text-center">
                     <div className="text-2xl sm:text-3xl font-bold text-blue-600 mb-2">
-                      $\${total.toLocaleString()} CUP
+                      $${total.toLocaleString()} CUP
                     </div>
                     <div className="text-sm text-gray-600">Subtotal Contenido</div>
-                    <div className="text-xs text-gray-500 mt-1">\${items.length} elementos</div>
+                    <div className="text-xs text-gray-500 mt-1">${items.length} elementos</div>
                   </div>
                 </div>
                 
                 <div className="bg-white rounded-xl p-4 border border-gray-200">
                   <div className="text-center">
                     <div className="text-2xl sm:text-3xl font-bold text-green-600 mb-2">
-                      $\${deliveryCost.toLocaleString()} CUP
+                      $${deliveryCost.toLocaleString()} CUP
                     </div>
                     <div className="text-sm text-gray-600">Costo de Entrega</div>
                     <div className="text-xs text-gray-500 mt-1">
-                      \${deliveryZone.split(' > ')[2] || 'Seleccionar zona'}
+                      ${deliveryZone.split(' > ')[2] || 'Seleccionar zona'}
                     </div>
                   </div>
                 </div>
@@ -2134,7 +2134,7 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
                 <div className="flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0">
                   <span className="text-lg sm:text-xl font-bold text-gray-900">Total Final:</span>
                   <span className="text-2xl sm:text-3xl font-bold text-green-600">
-                    $\${finalTotal.toLocaleString()} CUP
+                    $${finalTotal.toLocaleString()} CUP
                   </span>
                 </div>
               </div>
@@ -2221,17 +2221,17 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
                       value={deliveryZone}
                       onChange={(e) => setDeliveryZone(e.target.value)}
                       required
-                      className={\`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:border-transparent transition-all bg-white \${
+                      className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:border-transparent transition-all bg-white ${
                         deliveryZone === 'Por favor seleccionar su Barrio/Zona'
                           ? 'border-orange-300 focus:ring-orange-500 bg-orange-50'
                           : 'border-gray-300 focus:ring-green-500'
-                      }\`}
+                      }`}
                     >
                       {Object.entries(allZones).map(([zone, cost]) => (
                         <option key={zone} value={zone}>
                           {zone === 'Por favor seleccionar su Barrio/Zona' 
                             ? zone 
-                            : \`\${zone.split(' > ')[2] || zone} \${cost > 0 ? \`- $\${cost.toLocaleString()} CUP\` : ''}\`
+                            : `${zone.split(' > ')[2] || zone} ${cost > 0 ? `- $${cost.toLocaleString()} CUP` : ''}`
                           }
                         </option>
                       ))}
@@ -2261,12 +2261,12 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
                           </div>
                           <div className="bg-white rounded-lg px-3 py-2 border border-green-300">
                             <span className="text-lg font-bold text-green-600">
-                              $\${deliveryCost.toLocaleString()} CUP
+                              $${deliveryCost.toLocaleString()} CUP
                             </span>
                           </div>
                         </div>
                         <div className="text-xs text-green-600 ml-11">
-                          ✅ Zona: \${deliveryZone.split(' > ')[2] || deliveryZone}
+                          ✅ Zona: ${deliveryZone.split(' > ')[2] || deliveryZone}
                         </div>
                       </div>
                     )}
@@ -2286,11 +2286,11 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
                     type="button"
                     onClick={handleGenerateOrder}
                     disabled={!isFormValid || deliveryZone === 'Por favor seleccionar su Barrio/Zona'}
-                    className={\`flex-1 px-6 py-4 rounded-xl transition-all font-medium \${
+                    className={`flex-1 px-6 py-4 rounded-xl transition-all font-medium ${
                       isFormValid && deliveryZone !== 'Por favor seleccionar su Barrio/Zona'
                         ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white'
                         : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    }\`}
+                    }`}
                   >
                     Generar Orden
                   </button>
@@ -2323,11 +2323,11 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
                   </h3>
                   <button
                     onClick={handleCopyOrder}
-                    className={\`px-4 py-2 rounded-xl font-medium transition-all flex items-center justify-center \${
+                    className={`px-4 py-2 rounded-xl font-medium transition-all flex items-center justify-center ${
                       copied
                         ? 'bg-green-100 text-green-700 border border-green-300'
                         : 'bg-blue-100 text-blue-700 border border-blue-300 hover:bg-blue-200'
-                    }\`}
+                    }`}
                   >
                     {copied ? (
                       <>
@@ -2442,7 +2442,7 @@ export function PriceCard({ type, selectedSeasons = [], episodeCount = 0, isAnim
             <h3 className="font-bold text-green-800 text-sm">{getTypeLabel()}</h3>
             <p className="text-green-600 text-xs">
               {type === 'tv' && selectedSeasons.length > 0 
-                ? \`\${selectedSeasons.length} temporada\${selectedSeasons.length > 1 ? 's' : ''}\`
+                ? `${selectedSeasons.length} temporada${selectedSeasons.length > 1 ? 's' : ''}`
                 : 'Contenido completo'
               }
             </p>
@@ -2462,7 +2462,7 @@ export function PriceCard({ type, selectedSeasons = [], episodeCount = 0, isAnim
               Efectivo
             </span>
             <span className="text-lg font-bold text-green-700">
-              $\${price.toLocaleString()} CUP
+              $${price.toLocaleString()} CUP
             </span>
           </div>
         </div>
@@ -2475,17 +2475,17 @@ export function PriceCard({ type, selectedSeasons = [], episodeCount = 0, isAnim
               Transferencia
             </span>
             <span className="text-lg font-bold text-orange-700">
-              $\${transferPrice.toLocaleString()} CUP
+              $${transferPrice.toLocaleString()} CUP
             </span>
           </div>
           <div className="text-xs text-orange-600">
-            +\${transferFeePercentage}% recargo bancario
+            +${transferFeePercentage}% recargo bancario
           </div>
         </div>
         
         {type === 'tv' && selectedSeasons.length > 0 && (
           <div className="text-xs text-green-600 text-center bg-green-100 rounded-lg p-2">
-            $\${(price / selectedSeasons.length).toLocaleString()} CUP por temporada (efectivo)
+            $${(price / selectedSeasons.length).toLocaleString()} CUP por temporada (efectivo)
           </div>
         )}
       </div>
@@ -2716,8 +2716,8 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
   const generateNovelListText = () => {
     let listText = "📚 CATÁLOGO DE NOVELAS DISPONIBLES\\n";
     listText += "TV a la Carta - Novelas Completas\\n\\n";
-    listText += \`💰 Precio: $\${novelPricePerChapter} CUP por capítulo\\n\`;
-    listText += \`💳 Recargo transferencia: \${transferFeePercentage}%\\n\`;
+    listText += `💰 Precio: $${novelPricePerChapter} CUP por capítulo\\n`;
+    listText += `💳 Recargo transferencia: ${transferFeePercentage}%\\n`;
     listText += "📱 Contacto: +5354690878\\n\\n";
     listText += "═══════════════════════════════════\\n\\n";
     
@@ -2726,27 +2726,27 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
     
     allNovelas.forEach((novela, index) => {
       const baseCost = novela.capitulos * novelPricePerChapter;
-      listText += \`\${index + 1}. \${novela.titulo}\\n\`;
-      listText += \`   📺 Género: \${novela.genero}\\n\`;
-      listText += \`   📊 Capítulos: \${novela.capitulos}\\n\`;
-      listText += \`   📅 Año: \${novela.año}\\n\`;
-      listText += \`   💰 Costo en efectivo: \${baseCost.toLocaleString()} CUP\\n\\n\`;
+      listText += `${index + 1}. ${novela.titulo}\\n`;
+      listText += `   📺 Género: ${novela.genero}\\n`;
+      listText += `   📊 Capítulos: ${novela.capitulos}\\n`;
+      listText += `   📅 Año: ${novela.año}\\n`;
+      listText += `   💰 Costo en efectivo: ${baseCost.toLocaleString()} CUP\\n\\n`;
     });
     
-    listText += \`\\n🏦 PRECIOS CON TRANSFERENCIA BANCARIA (+\${transferFeePercentage}%):\\n\`;
+    listText += `\\n🏦 PRECIOS CON TRANSFERENCIA BANCARIA (+${transferFeePercentage}%):\\n`;
     listText += "═══════════════════════════════════\\n\\n";
     
     allNovelas.forEach((novela, index) => {
       const baseCost = novela.capitulos * novelPricePerChapter;
       const transferCost = Math.round(baseCost * (1 + transferFeePercentage / 100));
       const recargo = transferCost - baseCost;
-      listText += \`\${index + 1}. \${novela.titulo}\\n\`;
-      listText += \`   📺 Género: \${novela.genero}\\n\`;
-      listText += \`   📊 Capítulos: \${novela.capitulos}\\n\`;
-      listText += \`   📅 Año: \${novela.año}\\n\`;
-      listText += \`   💰 Costo base: \${baseCost.toLocaleString()} CUP\\n\`;
-      listText += \`   💳 Recargo (\${transferFeePercentage}%): +\${recargo.toLocaleString()} CUP\\n\`;
-      listText += \`   💰 Costo con transferencia: \${transferCost.toLocaleString()} CUP\\n\\n\`;
+      listText += `${index + 1}. ${novela.titulo}\\n`;
+      listText += `   📺 Género: ${novela.genero}\\n`;
+      listText += `   📊 Capítulos: ${novela.capitulos}\\n`;
+      listText += `   📅 Año: ${novela.año}\\n`;
+      listText += `   💰 Costo base: ${baseCost.toLocaleString()} CUP\\n`;
+      listText += `   💳 Recargo (${transferFeePercentage}%): +${recargo.toLocaleString()} CUP\\n`;
+      listText += `   💰 Costo con transferencia: ${transferCost.toLocaleString()} CUP\\n\\n`;
     });
     
     listText += "\\n📊 RESUMEN DE COSTOS:\\n";
@@ -2757,24 +2757,24 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
     const totalTransferencia = allNovelas.reduce((sum, novela) => sum + Math.round((novela.capitulos * novelPricePerChapter) * (1 + transferFeePercentage / 100)), 0);
     const totalRecargo = totalTransferencia - totalEfectivo;
     
-    listText += \`📊 Total de novelas: \${allNovelas.length}\\n\`;
-    listText += \`📊 Total de capítulos: \${totalCapitulos.toLocaleString()}\\n\\n\`;
-    listText += \`💵 CATÁLOGO COMPLETO EN EFECTIVO:\\n\`;
-    listText += \`   💰 Costo total: \${totalEfectivo.toLocaleString()} CUP\\n\\n\`;
-    listText += \`🏦 CATÁLOGO COMPLETO CON TRANSFERENCIA:\\n\`;
-    listText += \`   💰 Costo base: \${totalEfectivo.toLocaleString()} CUP\\n\`;
-    listText += \`   💳 Recargo total (\${transferFeePercentage}%): +\${totalRecargo.toLocaleString()} CUP\\n\`;
-    listText += \`   💰 Costo total con transferencia: \${totalTransferencia.toLocaleString()} CUP\\n\\n\`;
+    listText += `📊 Total de novelas: ${allNovelas.length}\\n`;
+    listText += `📊 Total de capítulos: ${totalCapitulos.toLocaleString()}\\n\\n`;
+    listText += `💵 CATÁLOGO COMPLETO EN EFECTIVO:\\n`;
+    listText += `   💰 Costo total: ${totalEfectivo.toLocaleString()} CUP\\n\\n`;
+    listText += `🏦 CATÁLOGO COMPLETO CON TRANSFERENCIA:\\n`;
+    listText += `   💰 Costo base: ${totalEfectivo.toLocaleString()} CUP\\n`;
+    listText += `   💳 Recargo total (${transferFeePercentage}%): +${totalRecargo.toLocaleString()} CUP\\n`;
+    listText += `   💰 Costo total con transferencia: ${totalTransferencia.toLocaleString()} CUP\\n\\n`;
     
     listText += "═══════════════════════════════════\\n";
     listText += "💡 INFORMACIÓN IMPORTANTE:\\n";
     listText += "• Los precios en efectivo no tienen recargo adicional\\n";
-    listText += \`• Las transferencias bancarias tienen un \${transferFeePercentage}% de recargo\\n\`;
+    listText += `• Las transferencias bancarias tienen un ${transferFeePercentage}% de recargo\\n`;
     listText += "• Puedes seleccionar novelas individuales o el catálogo completo\\n";
     listText += "• Todos los precios están en pesos cubanos (CUP)\\n\\n";
     listText += "📞 Para encargar, contacta al +5354690878\\n";
     listText += "🌟 ¡Disfruta de las mejores novelas!\\n";
-    listText += \`\\n📅 Generado el: \${new Date().toLocaleString('es-ES')}\`;
+    listText += `\\n📅 Generado el: ${new Date().toLocaleString('es-ES')}`;
     
     return listText;
   };
@@ -2807,66 +2807,66 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
       message += "💵 PAGO EN EFECTIVO:\\n";
       message += "═══════════════════════════════════\\n";
       cashNovelas.forEach((novela, index) => {
-        message += \`\${index + 1}. \${novela.titulo}\\n\`;
-        message += \`   📺 Género: \${novela.genero}\\n\`;
-        message += \`   📊 Capítulos: \${novela.capitulos}\\n\`;
-        message += \`   📅 Año: \${novela.año}\\n\`;
-        message += \`   💰 Costo: $\${(novela.capitulos * novelPricePerChapter).toLocaleString()} CUP\\n\\n\`;
+        message += `${index + 1}. ${novela.titulo}\\n`;
+        message += `   📺 Género: ${novela.genero}\\n`;
+        message += `   📊 Capítulos: ${novela.capitulos}\\n`;
+        message += `   📅 Año: ${novela.año}\\n`;
+        message += `   💰 Costo: $${(novela.capitulos * novelPricePerChapter).toLocaleString()} CUP\\n\\n`;
       });
-      message += \`💰 Subtotal Efectivo: $\${cashTotal.toLocaleString()} CUP\\n\`;
-      message += \`📊 Total capítulos: \${cashNovelas.reduce((sum, n) => sum + n.capitulos, 0)}\\n\\n\`;
+      message += `💰 Subtotal Efectivo: $${cashTotal.toLocaleString()} CUP\\n`;
+      message += `📊 Total capítulos: ${cashNovelas.reduce((sum, n) => sum + n.capitulos, 0)}\\n\\n`;
     }
     
     // Transfer novels
     if (transferNovelas.length > 0) {
-      message += \`🏦 PAGO POR TRANSFERENCIA BANCARIA (+\${transferFeePercentage}%):\\n\`;
+      message += `🏦 PAGO POR TRANSFERENCIA BANCARIA (+${transferFeePercentage}%):\\n`;
       message += "═══════════════════════════════════\\n";
       transferNovelas.forEach((novela, index) => {
         const baseCost = novela.capitulos * novelPricePerChapter;
         const fee = Math.round(baseCost * (transferFeePercentage / 100));
         const totalCost = baseCost + fee;
-        message += \`\${index + 1}. \${novela.titulo}\\n\`;
-        message += \`   📺 Género: \${novela.genero}\\n\`;
-        message += \`   📊 Capítulos: \${novela.capitulos}\\n\`;
-        message += \`   📅 Año: \${novela.año}\\n\`;
-        message += \`   💰 Costo base: $\${baseCost.toLocaleString()} CUP\\n\`;
-        message += \`   💳 Recargo (\${transferFeePercentage}%): +$\${fee.toLocaleString()} CUP\\n\`;
-        message += \`   💰 Costo total: $\${totalCost.toLocaleString()} CUP\\n\\n\`;
+        message += `${index + 1}. ${novela.titulo}\\n`;
+        message += `   📺 Género: ${novela.genero}\\n`;
+        message += `   📊 Capítulos: ${novela.capitulos}\\n`;
+        message += `   📅 Año: ${novela.año}\\n`;
+        message += `   💰 Costo base: $${baseCost.toLocaleString()} CUP\\n`;
+        message += `   💳 Recargo (${transferFeePercentage}%): +$${fee.toLocaleString()} CUP\\n`;
+        message += `   💰 Costo total: $${totalCost.toLocaleString()} CUP\\n\\n`;
       });
-      message += \`💰 Subtotal base transferencia: $\${transferBaseTotal.toLocaleString()} CUP\\n\`;
-      message += \`💳 Recargo total (\${transferFeePercentage}%): +$\${transferFee.toLocaleString()} CUP\\n\`;
-      message += \`💰 Subtotal Transferencia: $\${transferTotal.toLocaleString()} CUP\\n\`;
-      message += \`📊 Total capítulos: \${transferNovelas.reduce((sum, n) => sum + n.capitulos, 0)}\\n\\n\`;
+      message += `💰 Subtotal base transferencia: $${transferBaseTotal.toLocaleString()} CUP\\n`;
+      message += `💳 Recargo total (${transferFeePercentage}%): +$${transferFee.toLocaleString()} CUP\\n`;
+      message += `💰 Subtotal Transferencia: $${transferTotal.toLocaleString()} CUP\\n`;
+      message += `📊 Total capítulos: ${transferNovelas.reduce((sum, n) => sum + n.capitulos, 0)}\\n\\n`;
     }
     
     // Final summary
     message += "📊 RESUMEN FINAL:\\n";
     message += "═══════════════════════════════════\\n";
-    message += \`• Total de novelas: \${selectedNovelas.length}\\n\`;
-    message += \`• Total de capítulos: \${totalCapitulos}\\n\`;
+    message += `• Total de novelas: ${selectedNovelas.length}\\n`;
+    message += `• Total de capítulos: ${totalCapitulos}\\n`;
     if (cashTotal > 0) {
-      message += \`• Efectivo: $\${cashTotal.toLocaleString()} CUP (\${cashNovelas.length} novelas)\\n\`;
+      message += `• Efectivo: $${cashTotal.toLocaleString()} CUP (${cashNovelas.length} novelas)\\n`;
     }
     if (transferTotal > 0) {
-      message += \`• Transferencia: $\${transferTotal.toLocaleString()} CUP (\${transferNovelas.length} novelas)\\n\`;
+      message += `• Transferencia: $${transferTotal.toLocaleString()} CUP (${transferNovelas.length} novelas)\\n`;
     }
-    message += \`• TOTAL A PAGAR: $\${grandTotal.toLocaleString()} CUP\\n\\n\`;
-    message += \`📱 Enviado desde TV a la Carta\\n\`;
-    message += \`📅 Fecha: \${new Date().toLocaleString('es-ES')}\`;
+    message += `• TOTAL A PAGAR: $${grandTotal.toLocaleString()} CUP\\n\\n`;
+    message += `📱 Enviado desde TV a la Carta\\n`;
+    message += `📅 Fecha: ${new Date().toLocaleString('es-ES')}`;
 
     const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = \`https://wa.me/5354690878?text=\${encodedMessage}\`;
+    const whatsappUrl = `https://wa.me/5354690878?text=${encodedMessage}`;
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
   };
 
   const handleCall = () => {
-    window.open(\`tel:\${phoneNumber}\`, '_self');
+    window.open(`tel:${phoneNumber}`, '_self');
   };
 
   const handleWhatsApp = () => {
     const message = "📚 *Solicitar novelas*\\n\\n¿Hay novelas que me gustaría ver en [TV a la Carta] a continuación te comento:";
     const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = \`https://wa.me/5354690878?text=\${encodedMessage}\`;
+    const whatsappUrl = `https://wa.me/5354690878?text=${encodedMessage}`;
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
   };
 
@@ -2914,11 +2914,11 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
                 </div>
                 <div className="flex items-center">
                   <span className="text-2xl mr-3">💰</span>
-                  <p className="font-semibold">Costo: $\${novelPricePerChapter} CUP por cada capítulo</p>
+                  <p className="font-semibold">Costo: $${novelPricePerChapter} CUP por cada capítulo</p>
                 </div>
                 <div className="flex items-center">
                   <span className="text-2xl mr-3">💳</span>
-                  <p className="font-semibold">Transferencia bancaria: +\${transferFeePercentage}% de recargo</p>
+                  <p className="font-semibold">Transferencia bancaria: +${transferFeePercentage}% de recargo</p>
                 </div>
                 <div className="flex items-center">
                   <span className="text-2xl mr-3">📱</span>
@@ -2930,7 +2930,7 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
               <div className="mt-6 bg-white rounded-xl p-4 border border-pink-300">
                 <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
                   <div className="text-center sm:text-left">
-                    <p className="text-lg font-bold text-gray-900">\${phoneNumber}</p>
+                    <p className="text-lg font-bold text-gray-900">${phoneNumber}</p>
                     <p className="text-sm text-gray-600">Contacto directo</p>
                   </div>
                   
@@ -3037,7 +3037,7 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
                       <button
                         onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
                         className="px-3 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg transition-colors"
-                        title={\`Ordenar \${sortOrder === 'asc' ? 'descendente' : 'ascendente'}\`}
+                        title={`Ordenar ${sortOrder === 'asc' ? 'descendente' : 'ascendente'}`}
                       >
                         {sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
                       </button>
@@ -3046,7 +3046,7 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
                   
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
                     <div className="text-sm text-purple-700">
-                      Mostrando \${filteredNovelas.length} de \${allNovelas.length} novelas
+                      Mostrando ${filteredNovelas.length} de ${allNovelas.length} novelas
                       {(searchTerm || selectedGenre || selectedYear) && (
                         <span className="ml-2 text-purple-600">• Filtros activos</span>
                       )}
@@ -3066,7 +3066,7 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
                 <div className="bg-gradient-to-r from-purple-100 to-pink-100 p-4 border-b border-gray-200">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
                     <h4 className="text-lg font-bold text-gray-900">
-                      Seleccionar Novelas (\${selectedNovelas.length} seleccionadas)
+                      Seleccionar Novelas (${selectedNovelas.length} seleccionadas)
                     </h4>
                     <div className="flex space-x-2">
                       <button
@@ -3095,19 +3095,19 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                       <div className="bg-white rounded-lg p-3 border border-gray-200 text-center">
-                        <div className="text-2xl font-bold text-purple-600">\${selectedNovelas.length}</div>
+                        <div className="text-2xl font-bold text-purple-600">${selectedNovelas.length}</div>
                         <div className="text-sm text-gray-600">Novelas</div>
                       </div>
                       <div className="bg-white rounded-lg p-3 border border-gray-200 text-center">
-                        <div className="text-2xl font-bold text-blue-600">\${totals.totalCapitulos}</div>
+                        <div className="text-2xl font-bold text-blue-600">${totals.totalCapitulos}</div>
                         <div className="text-sm text-gray-600">Capítulos</div>
                       </div>
                       <div className="bg-white rounded-lg p-3 border border-gray-200 text-center">
-                        <div className="text-2xl font-bold text-green-600">$\${totals.cashTotal.toLocaleString()}</div>
+                        <div className="text-2xl font-bold text-green-600">$${totals.cashTotal.toLocaleString()}</div>
                         <div className="text-sm text-gray-600">Efectivo</div>
                       </div>
                       <div className="bg-white rounded-lg p-3 border border-gray-200 text-center">
-                        <div className="text-2xl font-bold text-orange-600">$\${totals.transferTotal.toLocaleString()}</div>
+                        <div className="text-2xl font-bold text-orange-600">$${totals.transferTotal.toLocaleString()}</div>
                         <div className="text-sm text-gray-600">Transferencia</div>
                       </div>
                     </div>
@@ -3115,11 +3115,11 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
                     <div className="bg-gradient-to-r from-green-100 to-blue-100 rounded-lg p-4 border-2 border-green-300">
                       <div className="flex justify-between items-center">
                         <span className="text-lg font-bold text-gray-900">TOTAL A PAGAR:</span>
-                        <span className="text-2xl font-bold text-green-600">$\${totals.grandTotal.toLocaleString()} CUP</span>
+                        <span className="text-2xl font-bold text-green-600">$${totals.grandTotal.toLocaleString()} CUP</span>
                       </div>
                       {totals.transferFee > 0 && (
                         <div className="text-sm text-orange-600 mt-2">
-                          Incluye $\${totals.transferFee.toLocaleString()} CUP de recargo por transferencia (\${transferFeePercentage}%)
+                          Incluye $${totals.transferFee.toLocaleString()} CUP de recargo por transferencia (${transferFeePercentage}%)
                         </div>
                       )}
                     </div>
@@ -3138,11 +3138,11 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
                       return (
                         <div
                           key={novela.id}
-                          className={\`p-4 rounded-xl border transition-all \${
+                          className={`p-4 rounded-xl border transition-all ${
                             isSelected 
                               ? 'bg-purple-50 border-purple-300 shadow-md' 
                               : 'bg-gray-50 border-gray-200 hover:bg-purple-25 hover:border-purple-200'
-                          }\`}
+                          }`}
                         >
                           <div className="flex items-start space-x-4">
                             <input
@@ -3155,16 +3155,16 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
                             <div className="flex-1">
                               <div className="flex flex-col sm:flex-row sm:items-start justify-between space-y-3 sm:space-y-0">
                                 <div className="flex-1">
-                                  <p className="font-semibold text-gray-900 mb-2">\${novela.titulo}</p>
+                                  <p className="font-semibold text-gray-900 mb-2">${novela.titulo}</p>
                                   <div className="flex flex-wrap gap-2 text-sm text-gray-600 mb-3">
                                     <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
-                                      \${novela.genero}
+                                      ${novela.genero}
                                     </span>
                                     <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                                      \${novela.capitulos} capítulos
+                                      ${novela.capitulos} capítulos
                                     </span>
                                     <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                                      \${novela.año}
+                                      ${novela.año}
                                     </span>
                                   </div>
                                   
@@ -3174,45 +3174,45 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
                                     <div className="flex space-x-2">
                                       <button
                                         onClick={() => handlePaymentTypeChange(novela.id, 'cash')}
-                                        className={\`px-3 py-2 rounded-full text-xs font-medium transition-colors \${
+                                        className={`px-3 py-2 rounded-full text-xs font-medium transition-colors ${
                                           novela.paymentType === 'cash'
                                             ? 'bg-green-500 text-white'
                                             : 'bg-gray-200 text-gray-600 hover:bg-green-100'
-                                        }\`}
+                                        }`}
                                       >
                                         <DollarSign className="h-3 w-3 inline mr-1" />
                                         Efectivo
                                       </button>
                                       <button
                                         onClick={() => handlePaymentTypeChange(novela.id, 'transfer')}
-                                        className={\`px-3 py-2 rounded-full text-xs font-medium transition-colors \${
+                                        className={`px-3 py-2 rounded-full text-xs font-medium transition-colors ${
                                           novela.paymentType === 'transfer'
                                             ? 'bg-orange-500 text-white'
                                             : 'bg-gray-200 text-gray-600 hover:bg-orange-100'
-                                        }\`}
+                                        }`}
                                       >
                                         <CreditCard className="h-3 w-3 inline mr-1" />
-                                        Transferencia (+\${transferFeePercentage}%)
+                                        Transferencia (+${transferFeePercentage}%)
                                       </button>
                                     </div>
                                   </div>
                                 </div>
                                 
                                 <div className="text-right sm:ml-4">
-                                  <div className={\`text-lg font-bold \${
+                                  <div className={`text-lg font-bold ${
                                     novela.paymentType === 'cash' ? 'text-green-600' : 'text-orange-600'
-                                  }\`}>
-                                    $\${finalCost.toLocaleString()} CUP
+                                  }`}>
+                                    $${finalCost.toLocaleString()} CUP
                                   </div>
                                   {novela.paymentType === 'transfer' && (
                                     <div className="text-xs text-gray-500">
-                                      Base: $\${baseCost.toLocaleString()} CUP
+                                      Base: $${baseCost.toLocaleString()} CUP
                                       <br />
-                                      Recargo: +$\${(transferCost - baseCost).toLocaleString()} CUP
+                                      Recargo: +$${(transferCost - baseCost).toLocaleString()} CUP
                                     </div>
                                   )}
                                   <div className="text-xs text-gray-500 mt-1">
-                                    $\${novelPricePerChapter} CUP × \${novela.capitulos} cap.
+                                    $${novelPricePerChapter} CUP × ${novela.capitulos} cap.
                                   </div>
                                 </div>
                               </div>
@@ -3250,20 +3250,20 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-4 sm:space-y-0">
                       <div className="text-center sm:text-left">
                         <p className="font-semibold text-gray-900">
-                          \${selectedNovelas.length} novelas seleccionadas
+                          ${selectedNovelas.length} novelas seleccionadas
                         </p>
                         <p className="text-sm text-gray-600">
-                          Total: $\${totals.grandTotal.toLocaleString()} CUP
+                          Total: $${totals.grandTotal.toLocaleString()} CUP
                         </p>
                       </div>
                       <button
                         onClick={sendSelectedNovelas}
                         disabled={selectedNovelas.length === 0}
-                        className={\`px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 flex items-center justify-center \${
+                        className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 flex items-center justify-center ${
                           selectedNovelas.length > 0
                             ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white'
                             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        }\`}
+                        }`}
                       >
                         <MessageCircle className="h-5 w-5 mr-2" />
                         Enviar por WhatsApp
@@ -3283,7 +3283,7 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
 
 // Generate App.tsx with embedded configuration
 function getAppTsxSource(): string {
-  return `import React from 'react';
+  return \`import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
 import { AdminProvider } from './context/AdminContext';
