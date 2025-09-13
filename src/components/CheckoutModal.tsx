@@ -1,16 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, MapPin, User, Phone, Home, CreditCard, DollarSign, MessageCircle, Calculator, Truck, ExternalLink } from 'lucide-react';
-
-// ZONAS DE ENTREGA EMBEBIDAS - Generadas automáticamente
-const EMBEDDED_DELIVERY_ZONES = [];
-
-// PRECIOS EMBEBIDOS
-const EMBEDDED_PRICES = {
-  "moviePrice": 80,
-  "seriesPrice": 300,
-  "transferFeePercentage": 10,
-  "novelPricePerChapter": 5
-};
+import { useAdmin } from '../context/AdminContext';
 
 export interface CustomerInfo {
   fullName: string;
@@ -47,6 +37,7 @@ interface CheckoutModalProps {
 }
 
 export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: CheckoutModalProps) {
+  const { state: adminState } = useAdmin();
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
     fullName: '',
     phone: '',
@@ -56,10 +47,23 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
   const [deliveryCost, setDeliveryCost] = useState(0);
   const [pickupLocation, setPickupLocation] = useState(false);
   const [showLocationMap, setShowLocationMap] = useState(false);
-  const [errors, setErrors] = useState<Partial<CustomerInfo>>({});
+  const [errors, setErrors] = useState<Partial<CustomerInfo & { zone: string }>>({});
 
-  // Use embedded delivery zones
-  const deliveryZones = EMBEDDED_DELIVERY_ZONES;
+  // Use delivery zones from admin state with real-time updates
+  const deliveryZones = adminState.deliveryZones || [];
+
+  // Listen for admin changes
+  useEffect(() => {
+    const handleDeliveryZonesUpdate = (event: CustomEvent) => {
+      // The zones will be updated automatically through adminState
+      console.log('Delivery zones updated:', event.detail);
+    };
+
+    window.addEventListener('admin_delivery_zones_updated', handleDeliveryZonesUpdate as EventListener);
+    return () => {
+      window.removeEventListener('admin_delivery_zones_updated', handleDeliveryZonesUpdate as EventListener);
+    };
+  }, []);
 
   // Agregar opción de recogida en el local
   const pickupOption = {
@@ -82,7 +86,7 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
   }, [selectedZone, deliveryZones]);
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<CustomerInfo> = {};
+    const newErrors: Partial<CustomerInfo & { zone: string }> = {};
 
     if (!customerInfo.fullName.trim()) {
       newErrors.fullName = 'El nombre completo es requerido';
@@ -94,8 +98,12 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
       newErrors.phone = 'Formato de teléfono inválido';
     }
 
-    if (!pickupLocation && !customerInfo.address.trim()) {
-      newErrors.address = 'La dirección es requerida para entrega a domicilio';
+    if (!customerInfo.address.trim()) {
+      newErrors.address = 'La dirección es requerida';
+    }
+
+    if (!selectedZone) {
+      newErrors.zone = 'Debe seleccionar una opción de entrega';
     }
 
     setErrors(newErrors);
@@ -106,11 +114,6 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
     e.preventDefault();
     
     if (!validateForm()) {
-      return;
-    }
-
-    if (!selectedZone) {
-      alert('Por favor selecciona una opción de entrega');
       return;
     }
 
@@ -215,25 +218,23 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
                   )}
                 </div>
 
-                {!pickupLocation && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Dirección Completa *
-                    </label>
-                    <textarea
-                      value={customerInfo.address}
-                      onChange={(e) => handleInputChange('address', e.target.value)}
-                      rows={3}
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none ${
-                        errors.address ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                      placeholder="Calle, número, entre calles, referencias..."
-                    />
-                    {errors.address && (
-                      <p className="text-red-500 text-sm mt-1">{errors.address}</p>
-                    )}
-                  </div>
-                )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Dirección Completa *
+                  </label>
+                  <textarea
+                    value={customerInfo.address}
+                    onChange={(e) => handleInputChange('address', e.target.value)}
+                    rows={3}
+                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none ${
+                      errors.address ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="Calle, número, entre calles, referencias..."
+                  />
+                  {errors.address && (
+                    <p className="text-red-500 text-sm mt-1">{errors.address}</p>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -241,8 +242,12 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
             <div className="bg-gray-50 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                 <MapPin className="h-5 w-5 mr-2 text-green-600" />
-                Opciones de Entrega
+                Opciones de Entrega *
               </h3>
+              
+              {errors.zone && (
+                <p className="text-red-500 text-sm mb-4">{errors.zone}</p>
+              )}
               
               <div className="space-y-3">
                 {allDeliveryOptions.map((option) => (
@@ -260,7 +265,12 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
                         name="deliveryOption"
                         value={option.id === 'pickup' ? 'pickup' : option.name}
                         checked={selectedZone === (option.id === 'pickup' ? 'pickup' : option.name)}
-                        onChange={(e) => setSelectedZone(e.target.value)}
+                        onChange={(e) => {
+                          setSelectedZone(e.target.value);
+                          if (errors.zone) {
+                            setErrors(prev => ({ ...prev, zone: undefined }));
+                          }
+                        }}
                         className="mr-3 h-4 w-4 text-green-600 focus:ring-green-500"
                       />
                       <div>
@@ -310,15 +320,18 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
                 </div>
               )}
 
-              {allDeliveryOptions.length === 1 && (
-                <div className="text-center py-8">
-                  <Truck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    Solo disponible recogida en el local
-                  </h3>
-                  <p className="text-gray-600">
-                    Contacta con el administrador para configurar zonas de entrega adicionales.
-                  </p>
+              {/* Show message when no delivery zones available */}
+              {deliveryZones.length === 0 && (
+                <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                  <div className="text-center">
+                    <Truck className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
+                    <h4 className="text-sm font-semibold text-yellow-800 mb-1">
+                      Solo disponible recogida en el local
+                    </h4>
+                    <p className="text-xs text-yellow-700">
+                      Las zonas de entrega configuradas en el panel de administración aparecerán aquí automáticamente.
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
@@ -361,8 +374,7 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={!selectedZone}
-              className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:from-gray-400 disabled:to-gray-500 text-white px-6 py-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-6 py-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center"
             >
               <MessageCircle className="h-5 w-5 mr-2" />
               Enviar Pedido por WhatsApp
