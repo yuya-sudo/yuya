@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { X, Download, MessageCircle, Phone, BookOpen, Info, Check, DollarSign, CreditCard, Calculator, Search, Filter, SortAsc, SortDesc, Smartphone } from 'lucide-react';
-import { useAdmin } from '../context/AdminContext';
 
 // CATÁLOGO DE NOVELAS EMBEBIDO - Generado automáticamente
 const EMBEDDED_NOVELS = [];
@@ -29,7 +28,6 @@ interface NovelasModalProps {
 }
 
 export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
-  const { state: adminState } = useAdmin();
   const [selectedNovelas, setSelectedNovelas] = useState<number[]>([]);
   const [novelasWithPayment, setNovelasWithPayment] = useState<Novela[]>([]);
   const [showNovelList, setShowNovelList] = useState(false);
@@ -39,15 +37,13 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
   const [sortBy, setSortBy] = useState<'titulo' | 'año' | 'capitulos'>('titulo');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
-  // Get novels and prices from admin state
-  const adminNovels = adminState.novels;
-  const novelPricePerChapter = adminState.prices.novelPricePerChapter;
-  const transferFeePercentage = adminState.prices.transferFeePercentage;
+  // Get novels and prices from embedded configuration
+  const adminNovels = EMBEDDED_NOVELS;
+  const novelPricePerChapter = EMBEDDED_PRICES.novelPricePerChapter;
+  const transferFeePercentage = EMBEDDED_PRICES.transferFeePercentage;
   
   // Base novels list
-  const defaultNovelas: Novela[] = [
-    
-  ];
+  const defaultNovelas: Novela[] = [];
 
   // Combine admin novels with default novels
   const allNovelas = [...defaultNovelas, ...adminNovels.map(novel => ({
@@ -66,6 +62,15 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
   
   // Get unique years
   const uniqueYears = [...new Set(allNovelas.map(novela => novela.año))].sort((a, b) => b - a);
+
+  // Initialize novels with default payment type
+  useEffect(() => {
+    const novelasWithDefaultPayment = allNovelas.map(novela => ({
+      ...novela,
+      paymentType: 'cash' as const
+    }));
+    setNovelasWithPayment(novelasWithDefaultPayment);
+  }, []);
 
   // Filter novels function
   const getFilteredNovelas = () => {
@@ -99,15 +104,6 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
   };
 
   const filteredNovelas = getFilteredNovelas();
-
-  // Initialize novels with default payment type
-  useEffect(() => {
-    const novelasWithDefaultPayment = allNovelas.map(novela => ({
-      ...novela,
-      paymentType: 'cash' as const
-    }));
-    setNovelasWithPayment(novelasWithDefaultPayment);
-  }, []);
 
   const handleNovelToggle = (novelaId: number) => {
     setSelectedNovelas(prev => {
@@ -176,55 +172,60 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
   const generateNovelListText = () => {
     let listText = "📚 CATÁLOGO DE NOVELAS DISPONIBLES\n";
     listText += "TV a la Carta - Novelas Completas\n\n";
-    listText += `💰 Precio: ${novelPricePerChapter} CUP por capítulo\n`;
+    listText += `💰 Precio: $${novelPricePerChapter} CUP por capítulo\n`;
     listText += `💳 Recargo transferencia: ${transferFeePercentage}%\n`;
     listText += "📱 Contacto: +5354690878\n\n";
     listText += "═══════════════════════════════════\n\n";
     
-    listText += "💵 PRECIOS EN EFECTIVO:\n";
-    listText += "═══════════════════════════════════\n\n";
-    
-    allNovelas.forEach((novela, index) => {
-      const baseCost = novela.capitulos * novelPricePerChapter;
-      listText += `${index + 1}. ${novela.titulo}\n`;
-      listText += `   📺 Género: ${novela.genero}\n`;
-      listText += `   📊 Capítulos: ${novela.capitulos}\n`;
-      listText += `   📅 Año: ${novela.año}\n`;
-      listText += `   💰 Costo en efectivo: ${baseCost.toLocaleString()} CUP\n\n`;
-    });
-    
-    listText += `\n🏦 PRECIOS CON TRANSFERENCIA BANCARIA (+${transferFeePercentage}%):\n`;
-    listText += "═══════════════════════════════════\n\n";
-    
-    allNovelas.forEach((novela, index) => {
-      const baseCost = novela.capitulos * novelPricePerChapter;
-      const transferCost = Math.round(baseCost * (1 + transferFeePercentage / 100));
-      const recargo = transferCost - baseCost;
-      listText += `${index + 1}. ${novela.titulo}\n`;
-      listText += `   📺 Género: ${novela.genero}\n`;
-      listText += `   📊 Capítulos: ${novela.capitulos}\n`;
-      listText += `   📅 Año: ${novela.año}\n`;
-      listText += `   💰 Costo base: ${baseCost.toLocaleString()} CUP\n`;
-      listText += `   💳 Recargo (${transferFeePercentage}%): +${recargo.toLocaleString()} CUP\n`;
-      listText += `   💰 Costo con transferencia: ${transferCost.toLocaleString()} CUP\n\n`;
-    });
-    
-    listText += "\n📊 RESUMEN DE COSTOS:\n";
-    listText += "═══════════════════════════════════\n\n";
-    
-    const totalCapitulos = allNovelas.reduce((sum, novela) => sum + novela.capitulos, 0);
-    const totalEfectivo = allNovelas.reduce((sum, novela) => sum + (novela.capitulos * novelPricePerChapter), 0);
-    const totalTransferencia = allNovelas.reduce((sum, novela) => sum + Math.round((novela.capitulos * novelPricePerChapter) * (1 + transferFeePercentage / 100)), 0);
-    const totalRecargo = totalTransferencia - totalEfectivo;
-    
-    listText += `📊 Total de novelas: ${allNovelas.length}\n`;
-    listText += `📊 Total de capítulos: ${totalCapitulos.toLocaleString()}\n\n`;
-    listText += `💵 CATÁLOGO COMPLETO EN EFECTIVO:\n`;
-    listText += `   💰 Costo total: ${totalEfectivo.toLocaleString()} CUP\n\n`;
-    listText += `🏦 CATÁLOGO COMPLETO CON TRANSFERENCIA:\n`;
-    listText += `   💰 Costo base: ${totalEfectivo.toLocaleString()} CUP\n`;
-    listText += `   💳 Recargo total (${transferFeePercentage}%): +${totalRecargo.toLocaleString()} CUP\n`;
-    listText += `   💰 Costo total con transferencia: ${totalTransferencia.toLocaleString()} CUP\n\n`;
+    if (allNovelas.length === 0) {
+      listText += "📋 No hay novelas disponibles en este momento.\n";
+      listText += "Contacta con el administrador para más información.\n\n";
+    } else {
+      listText += "💵 PRECIOS EN EFECTIVO:\n";
+      listText += "═══════════════════════════════════\n\n";
+      
+      allNovelas.forEach((novela, index) => {
+        const baseCost = novela.capitulos * novelPricePerChapter;
+        listText += `${index + 1}. ${novela.titulo}\n`;
+        listText += `   📺 Género: ${novela.genero}\n`;
+        listText += `   📊 Capítulos: ${novela.capitulos}\n`;
+        listText += `   📅 Año: ${novela.año}\n`;
+        listText += `   💰 Costo en efectivo: ${baseCost.toLocaleString()} CUP\n\n`;
+      });
+      
+      listText += `\n🏦 PRECIOS CON TRANSFERENCIA BANCARIA (+${transferFeePercentage}%):\n`;
+      listText += "═══════════════════════════════════\n\n";
+      
+      allNovelas.forEach((novela, index) => {
+        const baseCost = novela.capitulos * novelPricePerChapter;
+        const transferCost = Math.round(baseCost * (1 + transferFeePercentage / 100));
+        const recargo = transferCost - baseCost;
+        listText += `${index + 1}. ${novela.titulo}\n`;
+        listText += `   📺 Género: ${novela.genero}\n`;
+        listText += `   📊 Capítulos: ${novela.capitulos}\n`;
+        listText += `   📅 Año: ${novela.año}\n`;
+        listText += `   💰 Costo base: ${baseCost.toLocaleString()} CUP\n`;
+        listText += `   💳 Recargo (${transferFeePercentage}%): +${recargo.toLocaleString()} CUP\n`;
+        listText += `   💰 Costo con transferencia: ${transferCost.toLocaleString()} CUP\n\n`;
+      });
+      
+      listText += "\n📊 RESUMEN DE COSTOS:\n";
+      listText += "═══════════════════════════════════\n\n";
+      
+      const totalCapitulos = allNovelas.reduce((sum, novela) => sum + novela.capitulos, 0);
+      const totalEfectivo = allNovelas.reduce((sum, novela) => sum + (novela.capitulos * novelPricePerChapter), 0);
+      const totalTransferencia = allNovelas.reduce((sum, novela) => sum + Math.round((novela.capitulos * novelPricePerChapter) * (1 + transferFeePercentage / 100)), 0);
+      const totalRecargo = totalTransferencia - totalEfectivo;
+      
+      listText += `📊 Total de novelas: ${allNovelas.length}\n`;
+      listText += `📊 Total de capítulos: ${totalCapitulos.toLocaleString()}\n\n`;
+      listText += `💵 CATÁLOGO COMPLETO EN EFECTIVO:\n`;
+      listText += `   💰 Costo total: ${totalEfectivo.toLocaleString()} CUP\n\n`;
+      listText += `🏦 CATÁLOGO COMPLETO CON TRANSFERENCIA:\n`;
+      listText += `   💰 Costo base: ${totalEfectivo.toLocaleString()} CUP\n`;
+      listText += `   💳 Recargo total (${transferFeePercentage}%): +${totalRecargo.toLocaleString()} CUP\n`;
+      listText += `   💰 Costo total con transferencia: ${totalTransferencia.toLocaleString()} CUP\n\n`;
+    }
     
     listText += "═══════════════════════════════════\n";
     listText += "💡 INFORMACIÓN IMPORTANTE:\n";
@@ -454,8 +455,21 @@ export function NovelasModal({ isOpen, onClose }: NovelasModalProps) {
               </button>
             </div>
 
+            {/* Show message when no novels available */}
+            {allNovelas.length === 0 && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center">
+                <BookOpen className="h-12 w-12 text-yellow-600 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-yellow-800 mb-2">
+                  No hay novelas disponibles
+                </h3>
+                <p className="text-yellow-700">
+                  El catálogo de novelas está vacío. Contacta con el administrador para agregar novelas al sistema.
+                </p>
+              </div>
+            )}
+
             {/* Novels list */}
-            {showNovelList && (
+            {showNovelList && allNovelas.length > 0 && (
               <div className="bg-white rounded-2xl border-2 border-gray-200 overflow-hidden">
                 {/* Filters */}
                 <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 border-b border-gray-200">
