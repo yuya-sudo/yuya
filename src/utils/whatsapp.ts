@@ -91,9 +91,7 @@ export function sendOrderToWhatsApp(orderData: OrderData): void {
   message += `👤 *DATOS DEL CLIENTE:*\n`;
   message += `• Nombre: ${customerInfo.fullName}\n`;
   message += `• Teléfono: ${customerInfo.phone}\n`;
-  if (!pickupLocation) {
-    message += `• Dirección: ${customerInfo.address}\n`;
-  }
+  message += `• Dirección: ${customerInfo.address}\n`;
   message += `\n`;
   
   message += `🎯 *PRODUCTOS SOLICITADOS:*\n${itemsList}\n\n`;

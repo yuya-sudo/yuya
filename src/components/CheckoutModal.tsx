@@ -46,6 +46,24 @@ interface CheckoutModalProps {
   total: number;
 }
 
+// Validación de teléfonos cubanos
+const validateCubanPhone = (phone: string): boolean => {
+  // Remover espacios y caracteres especiales
+  const cleanPhone = phone.replace(/[\s\-\(\)\+]/g, '');
+  
+  // Patrones válidos para números cubanos
+  const patterns = [
+    /^53[5-9]\d{7}$/,     // +53 5XXXXXXX (móviles)
+    /^5[5-9]\d{7}$/,      // 5XXXXXXX (móviles sin código país)
+    /^53[2-4]\d{7}$/,     // +53 2XXXXXXX, 3XXXXXXX, 4XXXXXXX (fijos)
+    /^[2-4]\d{7}$/,       // 2XXXXXXX, 3XXXXXXX, 4XXXXXXX (fijos sin código país)
+    /^537\d{7}$/,         // +53 7XXXXXXX (algunos fijos)
+    /^7\d{7}$/            // 7XXXXXXX (algunos fijos sin código país)
+  ];
+  
+  return patterns.some(pattern => pattern.test(cleanPhone));
+};
+
 export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: CheckoutModalProps) {
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
     fullName: '',
@@ -56,10 +74,35 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
   const [deliveryCost, setDeliveryCost] = useState(0);
   const [pickupLocation, setPickupLocation] = useState(false);
   const [showLocationMap, setShowLocationMap] = useState(false);
-  const [errors, setErrors] = useState<Partial<CustomerInfo>>({});
+  const [errors, setErrors] = useState<Partial<CustomerInfo & { zone: string }>>({});
+  const [deliveryType, setDeliveryType] = useState<'pickup' | 'delivery'>('pickup');
+  const [deliveryZones, setDeliveryZones] = useState(EMBEDDED_DELIVERY_ZONES);
 
-  // Use embedded delivery zones
-  const deliveryZones = EMBEDDED_DELIVERY_ZONES;
+  // Listen for delivery zone updates from admin panel
+  useEffect(() => {
+    const handleDeliveryZoneUpdate = (event: CustomEvent) => {
+      setDeliveryZones(event.detail);
+    };
+
+    window.addEventListener('admin_delivery_zones_updated', handleDeliveryZoneUpdate as EventListener);
+    
+    // Load current delivery zones from localStorage
+    try {
+      const adminState = localStorage.getItem('admin_system_state');
+      if (adminState) {
+        const state = JSON.parse(adminState);
+        if (state.deliveryZones) {
+          setDeliveryZones(state.deliveryZones);
+        }
+      }
+    } catch (error) {
+      console.warn('No se pudieron cargar las zonas de entrega:', error);
+    }
+
+    return () => {
+      window.removeEventListener('admin_delivery_zones_updated', handleDeliveryZoneUpdate as EventListener);
+    };
+  }, []);
 
   // Agregar opción de recogida en el local
   const pickupOption = {
@@ -68,7 +111,16 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
     cost: 0
   };
 
-  const allDeliveryOptions = [pickupOption, ...deliveryZones];
+  useEffect(() => {
+    if (deliveryType === 'pickup') {
+      setSelectedZone('pickup');
+      setDeliveryCost(0);
+      setPickupLocation(true);
+    } else {
+      setSelectedZone('');
+      setPickupLocation(false);
+    }
+  }, [deliveryType]);
 
   useEffect(() => {
     if (selectedZone === 'pickup') {
@@ -82,7 +134,7 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
   }, [selectedZone, deliveryZones]);
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<CustomerInfo> = {};
+    const newErrors: Partial<CustomerInfo & { zone: string }> = {};
 
     if (!customerInfo.fullName.trim()) {
       newErrors.fullName = 'El nombre completo es requerido';
@@ -90,12 +142,16 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
 
     if (!customerInfo.phone.trim()) {
       newErrors.phone = 'El teléfono es requerido';
-    } else if (!/^[+]?[0-9\s\-()]{8,}$/.test(customerInfo.phone)) {
-      newErrors.phone = 'Formato de teléfono inválido';
+    } else if (!validateCubanPhone(customerInfo.phone)) {
+      newErrors.phone = 'Número de teléfono cubano inválido';
     }
 
-    if (!pickupLocation && !customerInfo.address.trim()) {
-      newErrors.address = 'La dirección es requerida para entrega a domicilio';
+    if (!customerInfo.address.trim()) {
+      newErrors.address = 'La dirección es requerida';
+    }
+
+    if (deliveryType === 'delivery' && !selectedZone) {
+      newErrors.zone = 'Debe seleccionar una zona de entrega';
     }
 
     setErrors(newErrors);
@@ -106,11 +162,6 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
     e.preventDefault();
     
     if (!validateForm()) {
-      return;
-    }
-
-    if (!selectedZone) {
-      alert('Por favor selecciona una opción de entrega');
       return;
     }
 
@@ -215,113 +266,172 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
                   )}
                 </div>
 
-                {!pickupLocation && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Dirección Completa *
-                    </label>
-                    <textarea
-                      value={customerInfo.address}
-                      onChange={(e) => handleInputChange('address', e.target.value)}
-                      rows={3}
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none ${
-                        errors.address ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                      placeholder="Calle, número, entre calles, referencias..."
-                    />
-                    {errors.address && (
-                      <p className="text-red-500 text-sm mt-1">{errors.address}</p>
-                    )}
-                  </div>
-                )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Dirección *
+                  </label>
+                  <textarea
+                    value={customerInfo.address}
+                    onChange={(e) => handleInputChange('address', e.target.value)}
+                    rows={3}
+                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none ${
+                      errors.address ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="Calle, número, entre calles, referencias..."
+                  />
+                  {errors.address && (
+                    <p className="text-red-500 text-sm mt-1">{errors.address}</p>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Delivery Options */}
+            {/* Delivery Type Selection */}
             <div className="bg-gray-50 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                 <MapPin className="h-5 w-5 mr-2 text-green-600" />
-                Opciones de Entrega
+                Tipo de Entrega
               </h3>
               
               <div className="space-y-3">
-                {allDeliveryOptions.map((option) => (
-                  <label
-                    key={option.id || option.name}
-                    className={`flex items-center justify-between p-4 border rounded-lg cursor-pointer transition-colors ${
-                      selectedZone === (option.id === 'pickup' ? 'pickup' : option.name)
-                        ? 'border-green-500 bg-green-50'
-                        : 'border-gray-300 hover:border-green-300'
-                    }`}
-                  >
-                    <div className="flex items-center">
-                      <input
-                        type="radio"
-                        name="deliveryOption"
-                        value={option.id === 'pickup' ? 'pickup' : option.name}
-                        checked={selectedZone === (option.id === 'pickup' ? 'pickup' : option.name)}
-                        onChange={(e) => setSelectedZone(e.target.value)}
-                        className="mr-3 h-4 w-4 text-green-600 focus:ring-green-500"
-                      />
-                      <div>
-                        <p className="font-medium text-gray-900">{option.name}</p>
-                        {option.id === 'pickup' && (
-                          <p className="text-sm text-gray-600">Reparto Nuevo Vista Alegre, Santiago de Cuba</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className={`font-semibold ${option.cost === 0 ? 'text-green-600' : 'text-green-600'}`}>
-                        {option.cost === 0 ? 'GRATIS' : `$${option.cost.toLocaleString()} CUP`}
-                      </p>
-                    </div>
-                  </label>
-                ))}
-              </div>
-
-              {/* Location Map Option */}
-              {pickupLocation && (
-                <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="flex items-center justify-between">
+                <label className={`flex items-center justify-between p-4 border rounded-lg cursor-pointer transition-colors ${
+                  deliveryType === 'pickup'
+                    ? 'border-green-500 bg-green-50'
+                    : 'border-gray-300 hover:border-green-300'
+                }`}>
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      name="deliveryType"
+                      value="pickup"
+                      checked={deliveryType === 'pickup'}
+                      onChange={(e) => setDeliveryType(e.target.value as 'pickup' | 'delivery')}
+                      className="mr-3 h-4 w-4 text-green-600 focus:ring-green-500"
+                    />
                     <div>
-                      <h4 className="font-medium text-blue-900">Ubicación del Local</h4>
-                      <p className="text-sm text-blue-700">Ver ubicación en Google Maps (opcional)</p>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <label className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={showLocationMap}
-                          onChange={(e) => setShowLocationMap(e.target.checked)}
-                          className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500"
-                        />
-                        <span className="text-sm text-blue-700">Incluir ubicación</span>
-                      </label>
-                      <button
-                        type="button"
-                        onClick={openLocationMap}
-                        className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center"
-                      >
-                        <ExternalLink className="h-4 w-4 mr-1" />
-                        Ver Mapa
-                      </button>
+                      <p className="font-medium text-gray-900">Recogida en TV a la Carta</p>
+                      <p className="text-sm text-gray-600">Reparto Nuevo Vista Alegre, Santiago de Cuba</p>
                     </div>
                   </div>
-                </div>
-              )}
+                  <div className="text-right">
+                    <p className="font-semibold text-green-600">GRATIS</p>
+                  </div>
+                </label>
 
-              {allDeliveryOptions.length === 1 && (
-                <div className="text-center py-8">
-                  <Truck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    Solo disponible recogida en el local
-                  </h3>
-                  <p className="text-gray-600">
-                    Contacta con el administrador para configurar zonas de entrega adicionales.
-                  </p>
-                </div>
-              )}
+                <label className={`flex items-center justify-between p-4 border rounded-lg cursor-pointer transition-colors ${
+                  deliveryType === 'delivery'
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-300 hover:border-blue-300'
+                }`}>
+                  <div className="flex items-center">
+                    <input
+                      type="radio"
+                      name="deliveryType"
+                      value="delivery"
+                      checked={deliveryType === 'delivery'}
+                      onChange={(e) => setDeliveryType(e.target.value as 'pickup' | 'delivery')}
+                      className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500"
+                    />
+                    <div>
+                      <p className="font-medium text-gray-900">Entrega a Domicilio</p>
+                      <p className="text-sm text-gray-600">Selecciona tu zona de entrega</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-blue-600">Según zona</p>
+                  </div>
+                </label>
+              </div>
             </div>
+
+            {/* Delivery Zones (only show if delivery is selected) */}
+            {deliveryType === 'delivery' && (
+              <div className="bg-gray-50 rounded-xl p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <Truck className="h-5 w-5 mr-2 text-blue-600" />
+                  Zonas de Entrega
+                </h3>
+                
+                {deliveryZones.length > 0 ? (
+                  <div className="space-y-3">
+                    {deliveryZones.map((zone) => (
+                      <label
+                        key={zone.id}
+                        className={`flex items-center justify-between p-4 border rounded-lg cursor-pointer transition-colors ${
+                          selectedZone === zone.name
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-gray-300 hover:border-blue-300'
+                        }`}
+                      >
+                        <div className="flex items-center">
+                          <input
+                            type="radio"
+                            name="deliveryZone"
+                            value={zone.name}
+                            checked={selectedZone === zone.name}
+                            onChange={(e) => setSelectedZone(e.target.value)}
+                            className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500"
+                          />
+                          <div>
+                            <p className="font-medium text-gray-900">{zone.name}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-blue-600">
+                            {zone.cost === 0 ? 'GRATIS' : `$${zone.cost.toLocaleString()} CUP`}
+                          </p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Truck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      No hay zonas de entrega configuradas
+                    </h3>
+                    <p className="text-gray-600">
+                      Contacta con el administrador para configurar zonas de entrega.
+                    </p>
+                  </div>
+                )}
+                
+                {errors.zone && (
+                  <p className="text-red-500 text-sm mt-2">{errors.zone}</p>
+                )}
+              </div>
+            )}
+
+            {/* Location Map Option for pickup */}
+            {deliveryType === 'pickup' && (
+              <div className="bg-blue-50 rounded-lg border border-blue-200 p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-medium text-blue-900">Ubicación del Local</h4>
+                    <p className="text-sm text-blue-700">Ver ubicación en Google Maps (opcional)</p>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={showLocationMap}
+                        onChange={(e) => setShowLocationMap(e.target.checked)}
+                        className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-blue-700">Incluir ubicación</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={openLocationMap}
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center"
+                    >
+                      <ExternalLink className="h-4 w-4 mr-1" />
+                      Ver Mapa
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Order Summary */}
             <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-200">
@@ -336,16 +446,14 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
                   <span className="font-semibold">${total.toLocaleString()} CUP</span>
                 </div>
                 
-                {selectedZone && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">
-                      {pickupLocation ? 'Recogida en local' : 'Entrega'}
-                    </span>
-                    <span className={`font-semibold ${deliveryCost === 0 ? 'text-green-600' : ''}`}>
-                      {deliveryCost === 0 ? 'GRATIS' : `$${deliveryCost.toLocaleString()} CUP`}
-                    </span>
-                  </div>
-                )}
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">
+                    {deliveryType === 'pickup' ? 'Recogida en local' : 'Entrega'}
+                  </span>
+                  <span className={`font-semibold ${deliveryCost === 0 ? 'text-green-600' : ''}`}>
+                    {deliveryCost === 0 ? 'GRATIS' : `$${deliveryCost.toLocaleString()} CUP`}
+                  </span>
+                </div>
                 
                 <div className="border-t border-gray-300 pt-3">
                   <div className="flex justify-between items-center">
@@ -361,8 +469,7 @@ export function CheckoutModal({ isOpen, onClose, onCheckout, items, total }: Che
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={!selectedZone}
-              className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:from-gray-400 disabled:to-gray-500 text-white px-6 py-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-6 py-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center"
             >
               <MessageCircle className="h-5 w-5 mr-2" />
               Enviar Pedido por WhatsApp

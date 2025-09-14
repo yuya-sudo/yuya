@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { DollarSign, Tv, Film, Star, CreditCard } from 'lucide-react';
 
 // PRECIOS EMBEBIDOS - Generados automáticamente
@@ -17,10 +17,39 @@ interface PriceCardProps {
 }
 
 export function PriceCard({ type, selectedSeasons = [], episodeCount = 0, isAnime = false }: PriceCardProps) {
-  // Use embedded prices
-  const moviePrice = EMBEDDED_PRICES.moviePrice;
-  const seriesPrice = EMBEDDED_PRICES.seriesPrice;
-  const transferFeePercentage = EMBEDDED_PRICES.transferFeePercentage;
+  // State for current prices
+  const [currentPrices, setCurrentPrices] = useState(EMBEDDED_PRICES);
+
+  // Listen for price updates from admin panel
+  useEffect(() => {
+    const handlePriceUpdate = (event: CustomEvent) => {
+      setCurrentPrices(event.detail);
+    };
+
+    window.addEventListener('admin_prices_updated', handlePriceUpdate as EventListener);
+    
+    // Load current prices from localStorage
+    try {
+      const adminState = localStorage.getItem('admin_system_state');
+      if (adminState) {
+        const state = JSON.parse(adminState);
+        if (state.prices) {
+          setCurrentPrices(state.prices);
+        }
+      }
+    } catch (error) {
+      console.warn('No se pudieron cargar los precios del admin:', error);
+    }
+
+    return () => {
+      window.removeEventListener('admin_prices_updated', handlePriceUpdate as EventListener);
+    };
+  }, []);
+
+  // Use current prices
+  const moviePrice = currentPrices.moviePrice;
+  const seriesPrice = currentPrices.seriesPrice;
+  const transferFeePercentage = currentPrices.transferFeePercentage;
   
   const calculatePrice = () => {
     if (type === 'movie') {
