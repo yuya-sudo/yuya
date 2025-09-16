@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { Toast } from '../components/Toast';
+import { AdminContext } from './AdminContext';
 import type { CartItem } from '../types/movie';
 
 // PRECIOS EMBEBIDOS - Generados automáticamente
@@ -97,6 +98,7 @@ function cartReducer(state: CartState, action: CartAction): CartState {
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(cartReducer, { items: [], total: 0 });
+  const adminContext = React.useContext(AdminContext);
   const [currentPrices, setCurrentPrices] = React.useState(EMBEDDED_PRICES);
   const [toast, setToast] = React.useState<{
     message: string;
@@ -106,6 +108,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   // Listen for price updates from admin panel
   useEffect(() => {
+    // Get prices from admin context if available
+    if (adminContext?.state?.prices) {
+      setCurrentPrices({
+        moviePrice: adminContext.state.prices.moviePrice,
+        seriesPrice: adminContext.state.prices.seriesPrice,
+        transferFeePercentage: adminContext.state.prices.transferFeePercentage,
+        novelPricePerChapter: adminContext.state.prices.novelPricePerChapter,
+      });
+    }
+
     const handlePriceUpdate = (event: CustomEvent) => {
       setCurrentPrices(event.detail);
       // Force re-render when prices change
@@ -134,7 +146,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return () => {
       window.removeEventListener('admin_prices_updated', handlePriceUpdate as EventListener);
     };
-  }, []);
+  }, [adminContext]);
 
   // Clear cart on page refresh
   useEffect(() => {
@@ -166,24 +178,34 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (sessionStorage.getItem('pageRefreshed') !== 'true') {
-      const savedCart = localStorage.getItem('movieCart');
-      if (savedCart) {
-        try {
-          const items = JSON.parse(savedCart);
+    const savedCart = localStorage.getItem('movieCart');
+    if (savedCart && sessionStorage.getItem('pageRefreshed') !== 'true') {
+      try {
+        const items = JSON.parse(savedCart);
+        if (Array.isArray(items) && items.length > 0) {
           dispatch({ type: 'LOAD_CART', payload: items });
-        } catch (error) {
-          console.error('Error loading cart from localStorage:', error);
         }
+      } catch (error) {
+        console.error('Error loading cart from localStorage:', error);
+        localStorage.removeItem('movieCart');
       }
     }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('movieCart', JSON.stringify(state.items));
+    try {
+      localStorage.setItem('movieCart', JSON.stringify(state.items));
+    } catch (error) {
+      console.error('Error saving cart to localStorage:', error);
+    }
   }, [state.items]);
 
   const addItem = (item: SeriesCartItem) => {
+    if (!item || !item.id || !item.title) {
+      console.error('Invalid item provided to addItem:', item);
+      return;
+    }
+
     const itemWithDefaults = { 
       ...item, 
       paymentType: 'cash' as const,
@@ -199,6 +221,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const removeItem = (id: number) => {
+    if (!id) {
+      console.error('Invalid id provided to removeItem:', id);
+      return;
+    }
+
     const item = state.items.find(item => item.id === id);
     dispatch({ type: 'REMOVE_ITEM', payload: id });
     
@@ -212,10 +239,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateSeasons = (id: number, seasons: number[]) => {
+    if (!id || !Array.isArray(seasons)) {
+      console.error('Invalid parameters provided to updateSeasons:', { id, seasons });
+      return;
+    }
     dispatch({ type: 'UPDATE_SEASONS', payload: { id, seasons } });
   };
 
   const updatePaymentType = (id: number, paymentType: 'cash' | 'transfer') => {
+    if (!id || !paymentType) {
+      console.error('Invalid parameters provided to updatePaymentType:', { id, paymentType });
+      return;
+    }
     dispatch({ type: 'UPDATE_PAYMENT_TYPE', payload: { id, paymentType } });
   };
 
@@ -224,20 +259,25 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const isInCart = (id: number) => {
+    if (!id) return false;
     return state.items.some(item => item.id === id);
   };
 
   const getItemSeasons = (id: number): number[] => {
+    if (!id) return [];
     const item = state.items.find(item => item.id === id);
     return item?.selectedSeasons || [];
   };
 
   const getItemPaymentType = (id: number): 'cash' | 'transfer' => {
+    if (!id) return 'cash';
     const item = state.items.find(item => item.id === id);
     return item?.paymentType || 'cash';
   };
 
   const calculateItemPrice = (item: SeriesCartItem): number => {
+    if (!item) return 0;
+
     // Use current prices from admin panel
     const moviePrice = currentPrices.moviePrice;
     const seriesPrice = currentPrices.seriesPrice;
@@ -254,6 +294,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const calculateTotalPrice = (): number => {
+    if (!state.items || state.items.length === 0) return 0;
     return state.items.reduce((total, item) => {
       return total + calculateItemPrice(item);
     }, 0);
@@ -264,7 +305,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const seriesPrice = currentPrices.seriesPrice;
     const transferFeePercentage = currentPrices.transferFeePercentage;
     
+    if (!state.items || state.items.length === 0) {
+      return { cash: 0, transfer: 0 };
+    }
+
     return state.items.reduce((totals, item) => {
+      if (!item) return totals;
       const basePrice = item.type === 'movie' ? moviePrice : (item.selectedSeasons?.length || 1) * seriesPrice;
       if (item.paymentType === 'transfer') {
         totals.transfer += Math.round(basePrice * (1 + transferFeePercentage / 100));

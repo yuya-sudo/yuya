@@ -31,6 +31,11 @@ export function MovieCard({ item, type }: MovieCardProps) {
     e.preventDefault();
     e.stopPropagation();
     
+    if (!item || !item.id) {
+      console.error('Invalid item for cart action:', item);
+      return;
+    }
+
     setIsAddingToCart(true);
     setTimeout(() => setIsAddingToCart(false), 1000);
 
@@ -45,13 +50,19 @@ export function MovieCard({ item, type }: MovieCardProps) {
       selectedSeasons: type === 'tv' ? [1] : undefined,
       original_language: item.original_language,
       genre_ids: item.genre_ids,
+      paymentType: 'cash' as const,
     };
 
+    try {
     if (inCart) {
       removeItem(item.id);
     } else {
       addItem(cartItem);
       setShowAnimation(true);
+    }
+    } catch (error) {
+      console.error('Error in cart action:', error);
+      setIsAddingToCart(false);
     }
   };
 
