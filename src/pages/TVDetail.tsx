@@ -124,6 +124,8 @@ export function TVDetail() {
   const handleCartAction = () => {
     if (!tvShow) return;
 
+    console.log('TV Show cart action:', { tvShow: tvShow.id, selectedSeasons, inCart });
+
     setShowCartAnimation(true);
     setTimeout(() => setShowCartAnimation(false), 2000);
 
@@ -146,12 +148,19 @@ export function TVDetail() {
       selectedSeasons: seasonsToAdd,
       original_language: tvShow.original_language,
       genre_ids: tvShow.genres.map(g => g.id),
+      paymentType: 'cash' as const,
     };
 
+    console.log('Cart item to add/remove:', cartItem);
+
+    try {
     if (inCart) {
       removeItem(tvShow.id);
     } else {
       addItem(cartItem);
+    }
+    } catch (error) {
+      console.error('Error in TV show cart action:', error);
     }
   };
 

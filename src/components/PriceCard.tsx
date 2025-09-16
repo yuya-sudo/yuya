@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DollarSign, Tv, Film, Star, CreditCard } from 'lucide-react';
+import { AdminContext } from '../context/AdminContext';
 
 // PRECIOS EMBEBIDOS - Generados automáticamente
 const EMBEDDED_PRICES = {
@@ -19,9 +20,20 @@ interface PriceCardProps {
 export function PriceCard({ type, selectedSeasons = [], episodeCount = 0, isAnime = false }: PriceCardProps) {
   // State for current prices
   const [currentPrices, setCurrentPrices] = useState(EMBEDDED_PRICES);
+  const adminContext = React.useContext(AdminContext);
 
   // Listen for price updates from admin panel
   useEffect(() => {
+    // Get prices from admin context if available
+    if (adminContext?.state?.prices) {
+      setCurrentPrices({
+        moviePrice: adminContext.state.prices.moviePrice,
+        seriesPrice: adminContext.state.prices.seriesPrice,
+        transferFeePercentage: adminContext.state.prices.transferFeePercentage,
+        novelPricePerChapter: adminContext.state.prices.novelPricePerChapter,
+      });
+    }
+
     const handlePriceUpdate = (event: CustomEvent) => {
       setCurrentPrices(event.detail);
     };
@@ -44,7 +56,7 @@ export function PriceCard({ type, selectedSeasons = [], episodeCount = 0, isAnim
     return () => {
       window.removeEventListener('admin_prices_updated', handlePriceUpdate as EventListener);
     };
-  }, []);
+  }, [adminContext]);
 
   // Use current prices
   const moviePrice = currentPrices.moviePrice;

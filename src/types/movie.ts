@@ -132,8 +132,6 @@ export interface CartItem {
   first_air_date?: string;
   vote_average: number;
   selectedSeasons?: number[];
-  price?: number;
-  totalPrice?: number;
   paymentType?: 'cash' | 'transfer';
   original_language?: string;
   genre_ids?: number[];

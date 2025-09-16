@@ -76,6 +76,8 @@ export function MovieDetail() {
   const handleCartAction = () => {
     if (!movie) return;
 
+    console.log('Movie cart action:', { movie: movie.id, inCart });
+
     setShowCartAnimation(true);
     setTimeout(() => setShowCartAnimation(false), 2000);
 
@@ -88,12 +90,19 @@ export function MovieDetail() {
       vote_average: movie.vote_average,
       original_language: movie.original_language,
       genre_ids: movie.genres.map(g => g.id),
+      paymentType: 'cash' as const,
     };
 
+    console.log('Cart item to add/remove:', cartItem);
+
+    try {
     if (inCart) {
       removeItem(movie.id);
     } else {
       addItem(cartItem);
+    }
+    } catch (error) {
+      console.error('Error in movie cart action:', error);
     }
   };
 

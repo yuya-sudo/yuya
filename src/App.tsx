@@ -16,6 +16,19 @@ import { AdminPanel } from './pages/AdminPanel';
 function App() {
   // Detectar refresh y redirigir a la página principal
   React.useEffect(() => {
+    // Clear any invalid cart data on app start
+    try {
+      const savedCart = localStorage.getItem('movieCart');
+      if (savedCart) {
+        const items = JSON.parse(savedCart);
+        if (!Array.isArray(items)) {
+          localStorage.removeItem('movieCart');
+        }
+      }
+    } catch (error) {
+      localStorage.removeItem('movieCart');
+    }
+
     const handleBeforeUnload = () => {
       // Marcar que la página se está recargando
       sessionStorage.setItem('pageRefreshed', 'true');

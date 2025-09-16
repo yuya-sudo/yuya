@@ -58,6 +58,7 @@ export function sendOrderToWhatsApp(orderData: OrderData): void {
   // Formatear lista de productos con desglose detallado de métodos de pago
   const itemsList = items
     .map(item => {
+      if (!item || !item.title) return '';
       const seasonInfo = item.selectedSeasons && item.selectedSeasons.length > 0 
         ? `\n  📺 Temporadas: ${item.selectedSeasons.sort((a, b) => a - b).join(', ')}` 
         : '';

@@ -10,8 +10,14 @@ import { IMAGE_BASE_URL, POSTER_SIZE } from '../config/api';
 
 export function Cart() {
   const { state, removeItem, clearCart, updatePaymentType, calculateItemPrice, calculateTotalPrice, calculateTotalByPaymentType } = useCart();
-  const adminContext = React.useContext(AdminContext);
   const [showCheckoutModal, setShowCheckoutModal] = React.useState(false);
+
+  // Debug cart state
+  React.useEffect(() => {
+    console.log('Cart state:', state);
+    console.log('Cart items:', state.items);
+    console.log('Cart total:', state.total);
+  }, [state]);
 
   const handleCheckout = (orderData: OrderData) => {
     // Calculate totals
@@ -51,6 +57,7 @@ export function Cart() {
   };
 
   const isAnime = (item: any) => {
+    if (!item) return false;
     return item.original_language === 'ja' || 
            (item.genre_ids && item.genre_ids.includes(16)) ||
            item.title?.toLowerCase().includes('anime');
@@ -60,7 +67,7 @@ export function Cart() {
   const totalsByPaymentType = calculateTotalByPaymentType();
   const movieCount = state.items.filter(item => item.type === 'movie').length;
   const seriesCount = state.items.filter(item => item.type === 'tv').length;
-  const animeCount = state.items.filter(item => isAnime(item)).length;
+  const animeCount = state.items.filter(item => item && isAnime(item)).length;
 
   if (state.items.length === 0) {
     return (
@@ -227,7 +234,7 @@ export function Cart() {
                             <CreditCard className="h-4 w-4 inline mr-2" />
                             Transferencia
                             <span className="ml-1 text-xs opacity-90">
-                              (+{adminContext?.state?.prices?.transferFeePercentage || 10}%)
+                              (+10%)
                             </span>
                             {item.paymentType === 'transfer' && (
                               <Zap className="h-3 w-3 inline ml-2 animate-pulse" />
@@ -255,7 +262,7 @@ export function Cart() {
                         </div>
                         {item.paymentType === 'transfer' && (
                           <div className="text-xs text-orange-600 font-semibold bg-orange-100 px-2 py-1 rounded-full">
-                            +{adminContext?.state?.prices?.transferFeePercentage || 10}% incluido
+                            +10% incluido
                           </div>
                         )}
                       </div>
@@ -361,6 +368,7 @@ export function Cart() {
               
               <div className="space-y-3 max-h-64 overflow-y-auto">
                 {state.items.map((item) => {
+                  if (!item) return null;
                   const itemPrice = calculateItemPrice(item);
                   const basePrice = item.type === 'movie' ? 80 : (item.selectedSeasons?.length || 1) * 300;
                   return (
@@ -372,7 +380,7 @@ export function Cart() {
                           {item.selectedSeasons && item.selectedSeasons.length > 0 && 
                             ` • Temporadas: ${item.selectedSeasons.sort((a, b) => a - b).join(', ')}`
                           }
-                          {isAnime(item) && ' • Anime'}
+                          {item && isAnime(item) && ' • Anime'}
                         </p>
                         <div className="mt-2">
                           <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
