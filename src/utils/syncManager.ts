@@ -67,6 +67,16 @@ export class SyncManager {
         config.novels = novels;
         localStorage.setItem('system_config', JSON.stringify(config));
       }
+
+      // Emitir evento específico para actualización de novelas en tiempo real
+      const novelUpdateEvent = new CustomEvent('novels_real_time_update', {
+        detail: { 
+          novels, 
+          timestamp: new Date().toISOString(),
+          source: 'admin_panel'
+        }
+      });
+      window.dispatchEvent(novelUpdateEvent);
     } catch (error) {
       console.error('Error updating novels in localStorage:', error);
     }

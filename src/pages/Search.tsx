@@ -54,7 +54,43 @@ export function SearchPage() {
         );
       }) || [];
       
-      setNovelResults(novelMatches);
+      // Si no hay novelas en adminState, buscar en localStorage
+      let finalNovelMatches = novelMatches;
+      if (novelMatches.length === 0) {
+        try {
+          const adminConfig = localStorage.getItem('system_config');
+          const adminStateStorage = localStorage.getItem('admin_system_state');
+          
+          let allNovels: any[] = [];
+          if (adminConfig) {
+            const config = JSON.parse(adminConfig);
+            if (config.novels) {
+              allNovels = config.novels;
+            }
+          } else if (adminStateStorage) {
+            const state = JSON.parse(adminStateStorage);
+            if (state.novels) {
+              allNovels = state.novels;
+            }
+          }
+          
+          finalNovelMatches = allNovels.filter(novel => {
+            const novelTitle = novel.titulo.toLowerCase();
+            const searchTerms = normalizedQuery.toLowerCase().split(' ').filter(term => term.length > 0);
+            
+            return searchTerms.every(term => 
+              novelTitle.includes(term) ||
+              novel.genero.toLowerCase().includes(term) ||
+              (novel.pais && novel.pais.toLowerCase().includes(term)) ||
+              (novel.descripcion && novel.descripcion.toLowerCase().includes(term))
+            );
+          });
+        } catch (error) {
+          console.error('Error searching novels in localStorage:', error);
+        }
+      }
+      
+      setNovelResults(finalNovelMatches);
       
       let response;
       switch (type) {

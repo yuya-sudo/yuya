@@ -95,13 +95,23 @@ export function useNovelSync() {
       }
     };
 
+    // Escuchar eventos de actualización en tiempo real
+    const handleRealTimeUpdate = (event: CustomEvent) => {
+      if (event.detail.novels) {
+        categorizeNovels(event.detail.novels);
+        console.log('Novelas actualizadas en tiempo real desde:', event.detail.source);
+      }
+    };
+
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('admin_state_change', handleAdminChange as EventListener);
+    window.addEventListener('novels_real_time_update', handleRealTimeUpdate as EventListener);
 
     return () => {
       unsubscribe();
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('admin_state_change', handleAdminChange as EventListener);
+      window.removeEventListener('novels_real_time_update', handleRealTimeUpdate as EventListener);
     };
   }, []);
 
