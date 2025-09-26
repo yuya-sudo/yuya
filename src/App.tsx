@@ -10,25 +10,13 @@ import { Anime } from './pages/Anime';
 import { SearchPage } from './pages/Search';
 import { MovieDetail } from './pages/MovieDetail';
 import { TVDetail } from './pages/TVDetail';
+import { NovelDetail } from './pages/NovelDetail';
 import { Cart } from './pages/Cart';
 import { AdminPanel } from './pages/AdminPanel';
 
 function App() {
   // Detectar refresh y redirigir a la página principal
   React.useEffect(() => {
-    // Clear any invalid cart data on app start
-    try {
-      const savedCart = localStorage.getItem('movieCart');
-      if (savedCart) {
-        const items = JSON.parse(savedCart);
-        if (!Array.isArray(items)) {
-          localStorage.removeItem('movieCart');
-        }
-      }
-    } catch (error) {
-      localStorage.removeItem('movieCart');
-    }
-
     const handleBeforeUnload = () => {
       // Marcar que la página se está recargando
       sessionStorage.setItem('pageRefreshed', 'true');
@@ -131,6 +119,7 @@ function App() {
                       <Route path="/search" element={<SearchPage />} />
                       <Route path="/movie/:id" element={<MovieDetail />} />
                       <Route path="/tv/:id" element={<TVDetail />} />
+                      <Route path="/novel/:id" element={<NovelDetail />} />
                       <Route path="/cart" element={<Cart />} />
                     </Routes>
                   </main>
