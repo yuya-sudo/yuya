@@ -4,6 +4,7 @@ import { ChevronRight, TrendingUp, Star, Monitor, Filter, Calendar, Clock, Flame
 import { tmdbService } from '../services/tmdb';
 import { useCart } from '../context/CartContext';
 import { useAdmin } from '../context/AdminContext';
+import { syncManager } from '../utils/syncManager';
 import { MovieCard } from '../components/MovieCard';
 import { HeroCarousel } from '../components/HeroCarousel';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -35,19 +36,103 @@ export function Home() {
     week: 'Esta Semana'
   };
 
-  // Sincronizar novelas con el estado del admin
+  // Sincronizar novelas con el estado del admin y cargar desde múltiples fuentes
   useEffect(() => {
-    if (adminState.novels) {
-      const transmission = adminState.novels.filter(novel => novel.estado === 'transmision');
-      const finished = adminState.novels.filter(novel => novel.estado === 'finalizada');
+    const loadNovelsFromAllSources = () => {
+      try {
+        let allNovels: any[] = [];
+        
+        // Cargar desde el estado del admin
+        if (adminState.novels && adminState.novels.length > 0) {
+          allNovels = adminState.novels;
+        } else {
+          // Cargar desde localStorage como fallback
+          const adminConfig = localStorage.getItem('system_config');
+          if (adminConfig) {
+            const config = JSON.parse(adminConfig);
+            if (config.novels) {
+              allNovels = config.novels;
+            }
+          } else {
+            // Fallback final al estado del admin en localStorage
+            const adminStateStorage = localStorage.getItem('admin_system_state');
+            if (adminStateStorage) {
+              const state = JSON.parse(adminStateStorage);
+              if (state.novels) {
+                allNovels = state.novels;
+              }
+            }
+          }
+        }
+        
+        // Categorizar novelas por estado
+        const transmission = allNovels.filter(novel => novel.estado === 'transmision');
+        const finished = allNovels.filter(novel => novel.estado === 'finalizada');
+        
+        setNovelsInTransmission(transmission);
+        setNovelsFinished(finished);
+        
+        console.log(`Novelas cargadas: ${allNovels.length} total, ${transmission.length} en transmisión, ${finished.length} finalizadas`);
+      } catch (error) {
+        console.error('Error loading novels from sources:', error);
+        setNovelsInTransmission([]);
+        setNovelsFinished([]);
+      }
+    };
+
+    loadNovelsFromAllSources();
+
+    // Suscribirse a cambios del sync manager
+    const unsubscribe = syncManager.subscribe('novels', (updatedNovels) => {
+      if (updatedNovels && Array.isArray(updatedNovels)) {
+        const transmission = updatedNovels.filter(novel => novel.estado === 'transmision');
+        const finished = updatedNovels.filter(novel => novel.estado === 'finalizada');
+        
+        setNovelsInTransmission(transmission);
+        setNovelsFinished(finished);
+        
+        console.log(`Novelas sincronizadas: ${updatedNovels.length} total, ${transmission.length} en transmisión, ${finished.length} finalizadas`);
+      }
+    });
+
+    // Escuchar eventos de storage para cambios directos
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === 'admin_system_state' || event.key === 'system_config') {
+        loadNovelsFromAllSources();
+      }
+    };
+
+    // Escuchar eventos personalizados del admin
+    const handleAdminChange = (event: CustomEvent) => {
+      if (event.detail.type?.includes('novel') || event.detail.type === 'novels_sync') {
+        loadNovelsFromAllSources();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('admin_state_change', handleAdminChange as EventListener);
+    window.addEventListener('admin_full_sync', handleAdminChange as EventListener);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('admin_state_change', handleAdminChange as EventListener);
+      window.removeEventListener('admin_full_sync', handleAdminChange as EventListener);
+    };
+  }, [adminState.novels]);
+
+  // Función para refrescar novelas manualmente
+  const refreshNovels = () => {
+    const currentNovels = syncManager.getCurrentData('novels');
+    if (currentNovels) {
+      const transmission = currentNovels.filter(novel => novel.estado === 'transmision');
+      const finished = currentNovels.filter(novel => novel.estado === 'finalizada');
       
       setNovelsInTransmission(transmission);
       setNovelsFinished(finished);
-    } else {
-      setNovelsInTransmission([]);
-      setNovelsFinished([]);
     }
-  }, [adminState.novels]);
+  };
+
   const fetchTrendingContent = async (timeWindow: TrendingTimeWindow) => {
     try {
       const response = await tmdbService.getTrendingAll(timeWindow, 1);
@@ -286,6 +371,11 @@ export function Home() {
                 <span className="text-white text-lg">📡</span>
               </div>
               Novelas en Transmisión
+              {novelsInTransmission.length > 0 && (
+                <span className="ml-3 bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-bold">
+                  {novelsInTransmission.length} activas
+                </span>
+              )}
             </h2>
             <button
               onClick={() => setShowNovelasModal(true)}
@@ -411,6 +501,11 @@ export function Home() {
                 <span className="text-white text-lg">✅</span>
               </div>
               Novelas Finalizadas
+              {novelsFinished.length > 0 && (
+                <span className="ml-3 bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-bold">
+                  {novelsFinished.length} disponibles
+                </span>
+              )}
             </h2>
             <button
               onClick={() => setShowNovelasModal(true)}

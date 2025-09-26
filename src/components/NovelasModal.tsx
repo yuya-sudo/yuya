@@ -392,6 +392,7 @@ export function NovelasModal({ isOpen, onClose, onFinalizePedido }: NovelasModal
       'Argentina': '🇦🇷',
       'España': '🇪🇸',
       'Estados Unidos': '🇺🇸',
+      'Cuba': '🇨🇺',
       'Corea del Sur': '🇰🇷',
       'India': '🇮🇳',
       'Reino Unido': '🇬🇧',

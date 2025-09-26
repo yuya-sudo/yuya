@@ -55,6 +55,7 @@ export function NovelCard({ novel }: NovelCardProps) {
       'Argentina': '🇦🇷',
       'España': '🇪🇸',
       'Estados Unidos': '🇺🇸',
+      'Cuba': '🇨🇺',
       'Corea del Sur': '🇰🇷',
       'India': '🇮🇳',
       'Reino Unido': '🇬🇧',

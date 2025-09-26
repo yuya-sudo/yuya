@@ -120,6 +120,7 @@ export function NovelDetail() {
       'Argentina': '🇦🇷',
       'España': '🇪🇸',
       'Estados Unidos': '🇺🇸',
+      'Cuba': '🇨🇺',
       'Corea del Sur': '🇰🇷',
       'India': '🇮🇳',
       'Reino Unido': '🇬🇧',
