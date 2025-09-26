@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Download, MessageCircle, Phone, BookOpen, Info, Check, DollarSign, CreditCard, Calculator, Search, Filter, SortAsc, SortDesc, Smartphone, FileText, Send, ShoppingCart, Upload, Image, Trash2, Edit, Save, Camera, Globe } from 'lucide-react';
+import { X, Download, MessageCircle, Phone, BookOpen, Info, Check, DollarSign, CreditCard, Calculator, Search, Filter, Import as SortAsc, Dessert as SortDesc, Smartphone, FileText, Send, ShoppingCart, Upload, Image, Trash2, CreditCard as Edit, Save, Camera, Globe } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import type { NovelCartItem } from '../types/movie';
 

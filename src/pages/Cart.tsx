@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, Trash2, Star, Calendar, MessageCircle, ArrowLeft, Edit3, Monitor, DollarSign, CreditCard, Calculator, Sparkles, Zap, Heart, Check, X, Clapperboard, Send, BookOpen } from 'lucide-react';
+import { ShoppingCart, Trash2, Star, Calendar, MessageCircle, ArrowLeft, CreditCard as Edit3, Monitor, DollarSign, CreditCard, Calculator, Sparkles, Zap, Heart, Check, X, Clapperboard, Send, BookOpen } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { AdminContext } from '../context/AdminContext';
 import { PriceCard } from '../components/PriceCard';
@@ -74,29 +74,6 @@ export function Cart() {
     
     return genreImages[novel.genre as keyof typeof genreImages] || 
            'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=300&h=400&fit=crop';
-  };
-
-  const getCountryFlag = (country: string) => {
-    const flags: { [key: string]: string } = {
-      'Turquía': '🇹🇷',
-      'México': '🇲🇽',
-      'Brasil': '🇧🇷',
-      'Colombia': '🇨🇴',
-      'Argentina': '🇦🇷',
-      'España': '🇪🇸',
-      'Estados Unidos': '🇺🇸',
-      'Cuba': '🇨🇺',
-      'Corea del Sur': '🇰🇷',
-      'India': '🇮🇳',
-      'Reino Unido': '🇬🇧',
-      'Francia': '🇫🇷',
-      'Italia': '🇮🇹',
-      'Alemania': '🇩🇪',
-      'Japón': '🇯🇵',
-      'China': '🇨🇳',
-      'Rusia': '🇷🇺'
-    };
-    return flags[country] || '🌍';
   };
 
   const isAnime = (item: any) => {
