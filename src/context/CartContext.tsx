@@ -121,37 +121,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const handleAdminFullSync = (event: CustomEvent) => {
       if (event.detail.config?.prices) {
         setCurrentPrices(event.detail.config.prices);
-      } else if (event.detail.state?.prices) {
-        setCurrentPrices(event.detail.state.prices);
       }
     };
 
-    // Listen for storage changes to sync prices
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'admin_system_state' || event.key === 'system_config') {
-        try {
-          const adminConfig = localStorage.getItem('system_config');
-          const adminState = localStorage.getItem('admin_system_state');
-          
-          if (adminConfig) {
-            const config = JSON.parse(adminConfig);
-            if (config.prices) {
-              setCurrentPrices(config.prices);
-            }
-          } else if (adminState) {
-            const state = JSON.parse(adminState);
-            if (state.prices) {
-              setCurrentPrices(state.prices);
-            }
-          }
-        } catch (error) {
-          console.error('Error syncing prices from storage:', error);
-        }
-      }
-    };
     window.addEventListener('admin_state_change', handleAdminStateChange as EventListener);
     window.addEventListener('admin_full_sync', handleAdminFullSync as EventListener);
-    window.addEventListener('storage', handleStorageChange);
 
     // Check for stored admin config
     try {
@@ -161,15 +135,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         if (config.prices) {
           setCurrentPrices(config.prices);
         }
-      } else {
-        // Fallback to admin state
-        const adminState = localStorage.getItem('admin_system_state');
-        if (adminState) {
-          const state = JSON.parse(adminState);
-          if (state.prices) {
-            setCurrentPrices(state.prices);
-          }
-        }
       }
     } catch (error) {
       console.error('Error loading admin prices:', error);
@@ -178,7 +143,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return () => {
       window.removeEventListener('admin_state_change', handleAdminStateChange as EventListener);
       window.removeEventListener('admin_full_sync', handleAdminFullSync as EventListener);
-      window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
 
@@ -236,14 +200,34 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       selectedSeasons: item.type === 'tv' && 'selectedSeasons' in item && !item.selectedSeasons ? [1] : 'selectedSeasons' in item ? item.selectedSeasons : undefined
     };
     dispatch({ type: 'ADD_ITEM', payload: itemWithDefaults });
+    
+    setToast({
+      message: `"${item.title}" agregado al carrito`,
+      type: 'success',
+      isVisible: true
+    });
   };
 
   const addNovel = (novel: NovelCartItem) => {
     dispatch({ type: 'ADD_ITEM', payload: novel });
+    
+    setToast({
+      message: `"${novel.title}" agregada al carrito`,
+      type: 'success',
+      isVisible: true
+    });
   };
   const removeItem = (id: number) => {
     const item = state.items.find(item => item.id === id);
     dispatch({ type: 'REMOVE_ITEM', payload: id });
+    
+    if (item) {
+      setToast({
+        message: `"${item.title}" retirado del carrito`,
+        type: 'error',
+        isVisible: true
+      });
+    }
   };
 
   const updateSeasons = (id: number, seasons: number[]) => {

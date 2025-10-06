@@ -114,13 +114,13 @@ export function NovelDetail() {
   const getCountryFlag = (country: string) => {
     const flags: { [key: string]: string } = {
       'Turquía': '🇹🇷',
+      'Cuba': '🇨🇺',
       'México': '🇲🇽',
       'Brasil': '🇧🇷',
       'Colombia': '🇨🇴',
       'Argentina': '🇦🇷',
       'España': '🇪🇸',
       'Estados Unidos': '🇺🇸',
-      'Cuba': '🇨🇺',
       'Corea del Sur': '🇰🇷',
       'India': '🇮🇳',
       'Reino Unido': '🇬🇧',

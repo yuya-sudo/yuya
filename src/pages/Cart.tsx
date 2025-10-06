@@ -604,7 +604,7 @@ export function Cart() {
             {/* WhatsApp Button */}
             <button
               onClick={() => setShowCheckoutModal(true)}
-              className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-6 py-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center transform hover:scale-105 hover:shadow-lg touch-manipulation"
+              className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 active:from-green-700 active:to-emerald-700 text-white px-6 py-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center transform hover:scale-105 active:scale-95 hover:shadow-lg touch-manipulation"
             >
               <Send className="mr-3 h-6 w-6" />
               Finalizar Pedido

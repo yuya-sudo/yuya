@@ -33,75 +33,30 @@ export function SearchPage() {
   };
 
   const performSearch = async (searchQuery: string, type: SearchType, pageNum: number, append: boolean = false) => {
-    // Permitir búsquedas con espacios - normalizar la consulta
-    const normalizedQuery = searchQuery.trim();
-    if (!normalizedQuery) return;
+    if (!searchQuery.trim()) return;
 
     try {
       if (!append) setLoading(true);
       
-      // Search novels first - mejorar búsqueda para permitir espacios
-      const novelMatches = adminState.novels?.filter(novel => {
-        const novelTitle = novel.titulo.toLowerCase();
-        const searchTerms = normalizedQuery.toLowerCase().split(' ').filter(term => term.length > 0);
-        
-        // Buscar si todos los términos están presentes en el título, género, país o descripción
-        return searchTerms.every(term => 
-          novelTitle.includes(term) ||
-          novel.genero.toLowerCase().includes(term) ||
-          (novel.pais && novel.pais.toLowerCase().includes(term)) ||
-          (novel.descripcion && novel.descripcion.toLowerCase().includes(term))
-        );
-      }) || [];
+      // Search novels first
+      const novelMatches = adminState.novels?.filter(novel =>
+        novel.titulo.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        novel.genero.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (novel.pais && novel.pais.toLowerCase().includes(searchQuery.toLowerCase()))
+      ) || [];
       
-      // Si no hay novelas en adminState, buscar en localStorage
-      let finalNovelMatches = novelMatches;
-      if (novelMatches.length === 0) {
-        try {
-          const adminConfig = localStorage.getItem('system_config');
-          const adminStateStorage = localStorage.getItem('admin_system_state');
-          
-          let allNovels: any[] = [];
-          if (adminConfig) {
-            const config = JSON.parse(adminConfig);
-            if (config.novels) {
-              allNovels = config.novels;
-            }
-          } else if (adminStateStorage) {
-            const state = JSON.parse(adminStateStorage);
-            if (state.novels) {
-              allNovels = state.novels;
-            }
-          }
-          
-          finalNovelMatches = allNovels.filter(novel => {
-            const novelTitle = novel.titulo.toLowerCase();
-            const searchTerms = normalizedQuery.toLowerCase().split(' ').filter(term => term.length > 0);
-            
-            return searchTerms.every(term => 
-              novelTitle.includes(term) ||
-              novel.genero.toLowerCase().includes(term) ||
-              (novel.pais && novel.pais.toLowerCase().includes(term)) ||
-              (novel.descripcion && novel.descripcion.toLowerCase().includes(term))
-            );
-          });
-        } catch (error) {
-          console.error('Error searching novels in localStorage:', error);
-        }
-      }
-      
-      setNovelResults(finalNovelMatches);
+      setNovelResults(novelMatches);
       
       let response;
       switch (type) {
         case 'movie':
-          response = await tmdbService.searchMovies(normalizedQuery, pageNum);
+          response = await tmdbService.searchMovies(searchQuery, pageNum);
           break;
         case 'tv':
           // Buscar tanto series normales como anime
           const [tvResponse, animeResponse] = await Promise.all([
-            tmdbService.searchTVShows(normalizedQuery, pageNum),
-            tmdbService.searchAnime(normalizedQuery, pageNum)
+            tmdbService.searchTVShows(searchQuery, pageNum),
+            tmdbService.searchAnime(searchQuery, pageNum)
           ]);
           
           // Combinar resultados y eliminar duplicados
@@ -119,8 +74,8 @@ export function SearchPage() {
         default:
           // Para búsqueda general, incluir anime también
           const [multiResponse, animeMultiResponse] = await Promise.all([
-            tmdbService.searchMulti(normalizedQuery, pageNum),
-            tmdbService.searchAnime(normalizedQuery, pageNum)
+            tmdbService.searchMulti(searchQuery, pageNum),
+            tmdbService.searchAnime(searchQuery, pageNum)
           ]);
           
           const allResults = [...multiResponse.results, ...animeMultiResponse.results];
@@ -156,19 +111,17 @@ export function SearchPage() {
   // Debounced search function
   const debouncedSearch = React.useMemo(
     () => performanceOptimizer.debounce(performSearch, 300),
-    [adminState.novels]
+    [performSearch]
   );
 
   useEffect(() => {
     if (query) {
-      setPage(1);
       debouncedSearch(query, searchType, 1, false);
     }
   }, [query, searchType, debouncedSearch]);
 
   const handleTypeChange = (newType: SearchType) => {
     setSearchType(newType);
-    setPage(1);
   };
 
   const loadMore = () => {
@@ -205,10 +158,9 @@ export function SearchPage() {
             </h1>
           </div>
           
-          {!loading && (totalResults > 0 || novelResults.length > 0) && (
+          {!loading && totalResults > 0 && (
             <p className="text-gray-600 mb-6">
-              Se encontraron {totalResults + novelResults.length} resultados
-              {novelResults.length > 0 && ` (${novelResults.length} novelas, ${totalResults} películas/series)`}
+              Se encontraron {totalResults} resultados
             </p>
           )}
 
@@ -232,10 +184,10 @@ export function SearchPage() {
         </div>
 
         {/* Loading State */}
-        {loading && results.length === 0 && novelResults.length === 0 && <LoadingSpinner />}
+        {loading && results.length === 0 && <LoadingSpinner />}
 
         {/* Error State */}
-        {error && results.length === 0 && novelResults.length === 0 && <ErrorMessage message={error} />}
+        {error && results.length === 0 && <ErrorMessage message={error} />}
 
         {/* No Results */}
         {!loading && !error && results.length === 0 && novelResults.length === 0 && query && (
@@ -244,11 +196,8 @@ export function SearchPage() {
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
               No se encontraron resultados
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600">
               Intenta con otros términos de búsqueda o explora nuestro catálogo de películas, series y novelas.
-            </p>
-            <p className="text-sm text-gray-500">
-              💡 Tip: Puedes buscar por título completo con espacios, por ejemplo: "Game of Thrones"
             </p>
           </div>
         )}
@@ -272,34 +221,32 @@ export function SearchPage() {
             )}
             
             {/* Movies and TV Shows */}
-            {results.length > 0 && (
-              <div className="mb-4">
-                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-                  <span className="mr-2">🎬</span>
-                  Películas y Series ({results.length})
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 mb-8">
-                  {results.map((item) => (
-                    <MovieCard
-                      key={`${getItemType(item)}-${item.id}`}
-                      item={item}
-                      type={getItemType(item)}
-                    />
-                  ))}
-                </div>
+            <div className="mb-4">
+              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                <span className="mr-2">🎬</span>
+                Películas y Series ({results.length})
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 mb-8">
+              {results.map((item) => (
+                <MovieCard
+                  key={`${getItemType(item)}-${item.id}`}
+                  item={item}
+                  type={getItemType(item)}
+                />
+              ))}
+            </div>
 
-                {/* Load More Button */}
-                {hasMore && (
-                  <div className="text-center">
-                    <button
-                      onClick={loadMore}
-                      disabled={loading}
-                      className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-8 py-3 rounded-lg font-medium transition-colors"
-                    >
-                      {loading ? 'Cargando...' : 'Cargar más resultados'}
-                    </button>
-                  </div>
-                )}
+            {/* Load More Button */}
+            {hasMore && (
+              <div className="text-center">
+                <button
+                  onClick={loadMore}
+                  disabled={loading}
+                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-8 py-3 rounded-lg font-medium transition-colors"
+                >
+                  {loading ? 'Cargando...' : 'Cargar más resultados'}
+                </button>
               </div>
             )}
           </>
