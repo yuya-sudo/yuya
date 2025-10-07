@@ -5,6 +5,8 @@ import { tmdbService } from '../services/tmdb';
 import { useCart } from '../context/CartContext';
 import { useAdmin } from '../context/AdminContext';
 import { MovieCard } from '../components/MovieCard';
+import { NetflixSection } from '../components/NetflixSection';
+import { FloatingNavButton } from '../components/FloatingNavButton';
 import { HeroCarousel } from '../components/HeroCarousel';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorMessage } from '../components/ErrorMessage';
@@ -27,6 +29,13 @@ export function Home() {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [showNovelasModal, setShowNovelasModal] = useState(false);
+
+  const handleNavigateToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   const currentPrices = getCurrentPrices();
   const timeWindowLabels = {
@@ -200,7 +209,9 @@ export function Home() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Carousel */}
-      <HeroCarousel items={heroItems} />
+      <div id="hero">
+        <HeroCarousel items={heroItems} />
+      </div>
       
       {/* Call to Action Section */}
       <section className="bg-gradient-to-r from-blue-900 via-purple-900 to-pink-800 text-white py-16">
@@ -242,7 +253,7 @@ export function Home() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Trending Content */}
-        <section className="mb-12">
+        <section id="trending" className="mb-12">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 space-y-4 sm:space-y-0">
             <h2 className="text-2xl font-bold text-gray-900 flex items-center">
               <Flame className="mr-2 h-6 w-6 text-red-500" />
@@ -270,9 +281,11 @@ export function Home() {
             </div>
           </div>
           
-          {/* Movies and TV Shows - Netflix Style */}
-          <div className="relative overflow-x-auto scrollbar-hide -mx-4 sm:mx-0">
-            <div className="flex gap-3 sm:gap-4 px-4 sm:px-0 pb-4" style={{ minWidth: 'min-content' }}>
+          <NetflixSection
+            title=""
+            icon={<></>}
+            itemCount={trendingContent.length}
+          >
               {trendingContent.map((item) => {
                 const itemType = 'title' in item ? 'movie' : 'tv';
                 return (
@@ -281,13 +294,12 @@ export function Home() {
                   </div>
                 );
               })}
-            </div>
-          </div>
+          </NetflixSection>
           
         </section>
 
         {/* Sección Dedicada: Novelas en Transmisión - Estilo Netflix */}
-        <section className="mb-12">
+        <section id="novels-live" className="mb-12">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
               <div className="bg-gradient-to-r from-red-500 to-pink-500 p-2 rounded-xl mr-3 shadow-lg">
@@ -308,8 +320,11 @@ export function Home() {
             <>
               {adminState.novels.filter(novel => novel.estado === 'transmision').length > 0 ? (
                 <>
-                  <div className="relative overflow-x-auto scrollbar-hide -mx-4 sm:mx-0">
-                    <div className="flex gap-3 sm:gap-4 px-4 sm:px-0 pb-4" style={{ minWidth: 'min-content' }}>
+                  <NetflixSection
+                    title=""
+                    icon={<></>}
+                    itemCount={adminState.novels.filter(novel => novel.estado === 'transmision').length}
+                  >
                     {adminState.novels
                       .filter(novel => novel.estado === 'transmision')
                       .map((novel) => (
@@ -376,8 +391,7 @@ export function Home() {
                           </div>
                         </Link>
                       ))}
-                    </div>
-                  </div>
+                  </NetflixSection>
                   {adminState.novels.filter(novel => novel.estado === 'transmision').length > 5 && (
                   <div className="text-center mt-6">
                     <button
@@ -426,7 +440,7 @@ export function Home() {
         </section>
 
         {/* Sección Dedicada: Novelas Finalizadas - Estilo Netflix */}
-        <section className="mb-12">
+        <section id="novels-finished" className="mb-12">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
               <div className="bg-gradient-to-r from-green-500 to-emerald-500 p-2 rounded-xl mr-3 shadow-lg">
@@ -447,8 +461,11 @@ export function Home() {
             <>
               {adminState.novels.filter(novel => novel.estado === 'finalizada').length > 0 ? (
                 <>
-                  <div className="relative overflow-x-auto scrollbar-hide -mx-4 sm:mx-0">
-                    <div className="flex gap-3 sm:gap-4 px-4 sm:px-0 pb-4" style={{ minWidth: 'min-content' }}>
+                  <NetflixSection
+                    title=""
+                    icon={<></>}
+                    itemCount={adminState.novels.filter(novel => novel.estado === 'finalizada').length}
+                  >
                     {adminState.novels
                       .filter(novel => novel.estado === 'finalizada')
                       .map((novel) => (
@@ -515,8 +532,7 @@ export function Home() {
                           </div>
                         </Link>
                       ))}
-                    </div>
-                  </div>
+                  </NetflixSection>
                   {adminState.novels.filter(novel => novel.estado === 'finalizada').length > 5 && (
                   <div className="text-center mt-6">
                     <button
@@ -565,7 +581,7 @@ export function Home() {
         </section>
 
         {/* Popular Movies - Netflix Style */}
-        <section className="mb-12">
+        <section id="movies" className="mb-12">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
               <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-2 rounded-xl mr-3 shadow-lg">
@@ -581,19 +597,21 @@ export function Home() {
               <ChevronRight className="ml-1 h-4 w-4" />
             </Link>
           </div>
-          <div className="relative overflow-x-auto scrollbar-hide -mx-4 sm:mx-0">
-            <div className="flex gap-3 sm:gap-4 px-4 sm:px-0 pb-4" style={{ minWidth: 'min-content' }}>
+          <NetflixSection
+            title=""
+            icon={<></>}
+            itemCount={popularMovies.length}
+          >
               {popularMovies.map((movie) => (
                 <div key={movie.id} className="flex-shrink-0 w-40 sm:w-44 md:w-48 lg:w-52">
                   <MovieCard item={movie} type="movie" />
                 </div>
               ))}
-            </div>
-          </div>
+          </NetflixSection>
         </section>
 
         {/* Popular TV Shows - Netflix Style */}
-        <section className="mb-12">
+        <section id="tv" className="mb-12">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
               <div className="bg-gradient-to-r from-purple-500 to-purple-600 p-2 rounded-xl mr-3 shadow-lg">
@@ -609,19 +627,21 @@ export function Home() {
               <ChevronRight className="ml-1 h-4 w-4" />
             </Link>
           </div>
-          <div className="relative overflow-x-auto scrollbar-hide -mx-4 sm:mx-0">
-            <div className="flex gap-3 sm:gap-4 px-4 sm:px-0 pb-4" style={{ minWidth: 'min-content' }}>
+          <NetflixSection
+            title=""
+            icon={<></>}
+            itemCount={popularTVShows.length}
+          >
               {popularTVShows.map((show) => (
                 <div key={show.id} className="flex-shrink-0 w-40 sm:w-44 md:w-48 lg:w-52">
                   <MovieCard item={show} type="tv" />
                 </div>
               ))}
-            </div>
-          </div>
+          </NetflixSection>
         </section>
 
         {/* Popular Anime - Netflix Style */}
-        <section className="mb-12">
+        <section id="anime" className="mb-12">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
               <div className="bg-gradient-to-r from-pink-500 to-pink-600 p-2 rounded-xl mr-3 shadow-lg">
@@ -637,15 +657,17 @@ export function Home() {
               <ChevronRight className="ml-1 h-4 w-4" />
             </Link>
           </div>
-          <div className="relative overflow-x-auto scrollbar-hide -mx-4 sm:mx-0">
-            <div className="flex gap-3 sm:gap-4 px-4 sm:px-0 pb-4" style={{ minWidth: 'min-content' }}>
+          <NetflixSection
+            title=""
+            icon={<></>}
+            itemCount={popularAnime.length}
+          >
               {popularAnime.map((anime) => (
                 <div key={anime.id} className="flex-shrink-0 w-40 sm:w-44 md:w-48 lg:w-52">
                   <MovieCard item={anime} type="tv" />
                 </div>
               ))}
-            </div>
-          </div>
+          </NetflixSection>
         </section>
 
         {/* Last Update Info (Hidden from users) */}
@@ -653,6 +675,9 @@ export function Home() {
           <p>Última actualización: {lastUpdate.toLocaleString()}</p>
         </div>
       </div>
+      
+      {/* Floating Navigation Button */}
+      <FloatingNavButton onNavigate={handleNavigateToSection} />
       
       {/* Modal de Novelas */}
       <NovelasModal 
