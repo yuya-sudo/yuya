@@ -1,94 +1,132 @@
-import React, { useState, useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTouchSwipe } from '../hooks/useTouchSwipe';
 
 interface NetflixSectionProps {
   title: string;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   children: React.ReactNode;
-  itemCount: number;
+  showViewAll?: boolean;
+  onViewAllClick?: () => void;
 }
 
-export function NetflixSection({ title, icon, children, itemCount }: NetflixSectionProps) {
+export function NetflixSection({
+  title,
+  icon,
+  children,
+  showViewAll = false,
+  onViewAllClick
+}: NetflixSectionProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
 
-  const checkScrollButtons = () => {
-    if (scrollContainerRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+  const checkScroll = () => {
+    if (scrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
       setCanScrollLeft(scrollLeft > 0);
       setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
     }
   };
 
   const scroll = (direction: 'left' | 'right') => {
-    if (scrollContainerRef.current) {
-      const scrollAmount = scrollContainerRef.current.clientWidth * 0.8;
-      const newScrollLeft = direction === 'left' 
-        ? scrollContainerRef.current.scrollLeft - scrollAmount
-        : scrollContainerRef.current.scrollLeft + scrollAmount;
-      
-      scrollContainerRef.current.scrollTo({
-        left: newScrollLeft,
+    if (scrollRef.current) {
+      const scrollAmount = scrollRef.current.clientWidth * 0.8;
+      const targetScroll = direction === 'left'
+        ? scrollRef.current.scrollLeft - scrollAmount
+        : scrollRef.current.scrollLeft + scrollAmount;
+
+      scrollRef.current.scrollTo({
+        left: targetScroll,
         behavior: 'smooth'
       });
+
+      setTimeout(checkScroll, 300);
     }
   };
 
+  const { handleTouchStart, handleTouchMove, handleTouchEnd, swipeVelocity } = useTouchSwipe({
+    scrollRef,
+    onSwipeLeft: () => canScrollLeft && scroll('left'),
+    onSwipeRight: () => canScrollRight && scroll('right'),
+    threshold: 75,
+    velocityThreshold: 0.5
+  });
+
   React.useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (container) {
-      checkScrollButtons();
-      container.addEventListener('scroll', checkScrollButtons);
-      
-      // Check on resize
-      const resizeObserver = new ResizeObserver(checkScrollButtons);
-      resizeObserver.observe(container);
-      
-      return () => {
-        container.removeEventListener('scroll', checkScrollButtons);
-        resizeObserver.disconnect();
-      };
-    }
-  }, [itemCount]);
+    checkScroll();
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+
+    window.addEventListener('resize', checkScroll);
+    window.addEventListener('resize', checkMobile);
+
+    return () => {
+      window.removeEventListener('resize', checkScroll);
+      window.removeEventListener('resize', checkMobile);
+    };
+  }, [children]);
 
   return (
-    <section className="mb-12 relative group">
-      <div className="flex items-center justify-between mb-6">
+    <section className="mb-12">
+      <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
-          {icon}
+          {icon && <div className="mr-3">{icon}</div>}
           {title}
         </h2>
+        {showViewAll && onViewAllClick && (
+          <button
+            onClick={onViewAllClick}
+            className="text-blue-600 hover:text-blue-800 flex items-center font-medium text-sm sm:text-base transition-colors"
+          >
+            Ver todas
+            <ChevronRight className="ml-1 h-4 w-4" />
+          </button>
+        )}
       </div>
 
-      <div className="relative">
-        {/* Left Arrow */}
+      <div className="relative group">
+        {/* Scroll Left Button */}
         {canScrollLeft && (
           <button
             onClick={() => scroll('left')}
-            className="absolute left-0 top-1/2 transform -translate-y-1/2 z-20 bg-black/70 hover:bg-black/90 text-white p-3 rounded-full transition-all duration-300 opacity-0 group-hover:opacity-100 hover:scale-110 shadow-xl"
-            style={{ marginLeft: '-20px' }}
+            className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-black/70 hover:bg-black/90 text-white p-2 sm:p-3 rounded-full transition-all duration-300 shadow-lg ${
+              isMobile ? 'opacity-60 active:opacity-100' : 'opacity-0 group-hover:opacity-100'
+            }`}
+            aria-label="Scroll left"
           >
-            <ChevronLeft className="h-6 w-6" />
+            <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>
         )}
 
-        {/* Right Arrow */}
+        {/* Scroll Right Button */}
         {canScrollRight && (
           <button
             onClick={() => scroll('right')}
-            className="absolute right-0 top-1/2 transform -translate-y-1/2 z-20 bg-black/70 hover:bg-black/90 text-white p-3 rounded-full transition-all duration-300 opacity-0 group-hover:opacity-100 hover:scale-110 shadow-xl"
-            style={{ marginRight: '-20px' }}
+            className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-black/70 hover:bg-black/90 text-white p-2 sm:p-3 rounded-full transition-all duration-300 shadow-lg ${
+              isMobile ? 'opacity-60 active:opacity-100' : 'opacity-0 group-hover:opacity-100'
+            }`}
+            aria-label="Scroll right"
           >
-            <ChevronRight className="h-6 w-6" />
+            <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>
         )}
 
         {/* Scrollable Content */}
-        <div 
-          ref={scrollContainerRef}
-          className="overflow-x-auto scrollbar-hide -mx-4 sm:mx-0"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        <div
+          ref={scrollRef}
+          onScroll={checkScroll}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          className="overflow-x-auto scrollbar-hide -mx-4 sm:mx-0 touch-pan-x swipe-container momentum-scroll"
+          style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            WebkitOverflowScrolling: 'touch',
+            transform: swipeVelocity > 0 ? 'translateZ(0)' : undefined
+          }}
         >
           <div className="flex gap-3 sm:gap-4 px-4 sm:px-0 pb-4" style={{ minWidth: 'min-content' }}>
             {children}
