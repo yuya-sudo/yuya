@@ -4,7 +4,207 @@ import type { CartItem, NovelCartItem, AllCartItems } from '../types/movie';
 
 // PRECIOS EMBEBIDOS - Generados automáticamente
 const EMBEDDED_PRICES = {
-  "moviePrice": 80,
+
+// ZONAS DE ENTREGA EMBEBIDAS - Generadas automáticamente
+const EMBEDDED_DELIVERY_ZONES = [
+  {
+    "name": "Santiago de Cuba > Vista Hermosa",
+    "cost": 400,
+    "id": 1759549448776,
+    "createdAt": "2025-10-04T03:44:08.776Z",
+    "updatedAt": "2025-10-04T03:44:08.776Z"
+  },
+  {
+    "name": "Santiago de Cuba > Antonio Maceo",
+    "cost": 400,
+    "id": 1759549461376,
+    "createdAt": "2025-10-04T03:44:21.376Z",
+    "updatedAt": "2025-10-04T03:44:21.376Z"
+  },
+  {
+    "name": "Santiago de Cuba > Centro de la ciudad",
+    "cost": 250,
+    "id": 1759549473488,
+    "createdAt": "2025-10-04T03:44:33.488Z",
+    "updatedAt": "2025-10-04T03:44:33.488Z"
+  },
+  {
+    "name": "Santiago de Cuba > Versalles Hasta el Hotel",
+    "cost": 500,
+    "id": 1759549486736,
+    "createdAt": "2025-10-04T03:44:46.736Z",
+    "updatedAt": "2025-10-04T03:44:46.736Z"
+  },
+  {
+    "name": "Santiago de Cuba > Carretera del Morro",
+    "cost": 300,
+    "id": 1759549499552,
+    "createdAt": "2025-10-04T03:44:59.552Z",
+    "updatedAt": "2025-10-04T03:44:59.552Z"
+  },
+  {
+    "name": "Santiago de Cuba > Altamira",
+    "cost": 400,
+    "id": 1759549511664,
+    "createdAt": "2025-10-04T03:45:11.664Z",
+    "updatedAt": "2025-10-04T03:45:11.664Z"
+  },
+  {
+    "name": "Santiago de Cuba > Cangrejitos",
+    "cost": 350,
+    "id": 1759549521424,
+    "createdAt": "2025-10-04T03:45:21.424Z",
+    "updatedAt": "2025-10-04T03:45:21.424Z"
+  },
+  {
+    "name": "Santiago de Cuba > Trocha",
+    "cost": 250,
+    "id": 1759549534560,
+    "createdAt": "2025-10-04T03:45:34.560Z",
+    "updatedAt": "2025-10-04T03:45:34.560Z"
+  },
+  {
+    "name": "Santiago de Cuba > Veguita de Galo",
+    "cost": 300,
+    "id": 1759549546912,
+    "createdAt": "2025-10-04T03:45:46.912Z",
+    "updatedAt": "2025-10-04T03:45:46.912Z"
+  },
+  {
+    "name": "Santiago de Cuba > Plaza de Martes",
+    "cost": 250,
+    "id": 1759549558000,
+    "createdAt": "2025-10-04T03:45:58.000Z",
+    "updatedAt": "2025-10-04T03:45:58.000Z"
+  },
+  {
+    "name": "Santiago de Cuba > Portuondo",
+    "cost": 300,
+    "id": 1759549569112,
+    "createdAt": "2025-10-04T03:46:09.112Z",
+    "updatedAt": "2025-10-04T03:46:09.112Z"
+  },
+  {
+    "name": "Santiago de Cuba > Sta Barbara",
+    "cost": 300,
+    "id": 1759549580560,
+    "createdAt": "2025-10-04T03:46:20.560Z",
+    "updatedAt": "2025-10-04T03:46:20.560Z"
+  },
+  {
+    "name": "Santiago de Cuba > Sueño",
+    "cost": 250,
+    "id": 1759549592112,
+    "createdAt": "2025-10-04T03:46:32.112Z",
+    "updatedAt": "2025-10-04T03:46:32.112Z"
+  },
+  {
+    "name": "Santiago de Cuba > San Pedrito",
+    "cost": 150,
+    "id": 1759549603696,
+    "createdAt": "2025-10-04T03:46:43.696Z",
+    "updatedAt": "2025-10-04T03:46:43.696Z"
+  },
+  {
+    "name": "Santiago de Cuba > Agüero",
+    "cost": 100,
+    "id": 1759549615848,
+    "createdAt": "2025-10-04T03:46:55.848Z",
+    "updatedAt": "2025-10-04T03:46:55.848Z"
+  },
+  {
+    "name": "Santiago de Cuba > Distrito Jose Martí",
+    "cost": 150,
+    "id": 1759549627504,
+    "createdAt": "2025-10-04T03:47:07.504Z",
+    "updatedAt": "2025-10-04T03:47:07.504Z"
+  },
+  {
+    "name": "Santiago de Cuba > Los Pinos",
+    "cost": 200,
+    "id": 1759549638272,
+    "createdAt": "2025-10-04T03:47:18.272Z",
+    "updatedAt": "2025-10-04T03:47:18.272Z"
+  },
+  {
+    "name": "Santiago de Cuba > Quintero",
+    "cost": 500,
+    "id": 1759549649480,
+    "createdAt": "2025-10-04T03:47:29.480Z",
+    "updatedAt": "2025-10-04T03:47:29.480Z"
+  },
+  {
+    "name": "Santiago de Cuba > 30 de noviembre bajo",
+    "cost": 400,
+    "id": 1759549660904,
+    "createdAt": "2025-10-04T03:47:40.904Z",
+    "updatedAt": "2025-10-04T03:47:40.904Z"
+  },
+  {
+    "name": "Santiago de Cuba > Rajayoga",
+    "cost": 600,
+    "id": 1759549668800,
+    "createdAt": "2025-10-04T03:47:48.800Z",
+    "updatedAt": "2025-10-04T03:47:48.800Z"
+  },
+  {
+    "name": "Santiago de Cuba > Pastorita",
+    "cost": 600,
+    "id": 1759549676760,
+    "createdAt": "2025-10-04T03:47:56.760Z",
+    "updatedAt": "2025-10-04T03:47:56.760Z"
+  },
+  {
+    "name": "Santiago de Cuba > Vista Alegre",
+    "cost": 300,
+    "id": 1759549686896,
+    "createdAt": "2025-10-04T03:48:06.896Z",
+    "updatedAt": "2025-10-04T03:48:06.896Z"
+  },
+  {
+    "name": "Santiago de Cuba > Caney",
+    "cost": 1000,
+    "id": 1759549696240,
+    "createdAt": "2025-10-04T03:48:16.240Z",
+    "updatedAt": "2025-10-04T03:48:16.240Z"
+  },
+  {
+    "name": "Santiago de Cuba > Nuevo Vista Alegre",
+    "cost": 100,
+    "id": 1759549706888,
+    "createdAt": "2025-10-04T03:48:26.888Z",
+    "updatedAt": "2025-10-04T03:48:26.888Z"
+  },
+  {
+    "name": "Santiago de Cuba > Marimón",
+    "cost": 100,
+    "id": 1759549715521,
+    "createdAt": "2025-10-04T03:48:35.521Z",
+    "updatedAt": "2025-10-04T03:48:35.521Z"
+  },
+  {
+    "name": "Santiago de Cuba > Versalle Edificios",
+    "cost": 800,
+    "id": 1759549729736,
+    "createdAt": "2025-10-04T03:48:49.736Z",
+    "updatedAt": "2025-10-04T03:48:49.736Z"
+  },
+  {
+    "name": "Santiago de Cuba > Ferreiro",
+    "cost": 300,
+    "id": 1759549738720,
+    "createdAt": "2025-10-04T03:48:58.720Z",
+    "updatedAt": "2025-10-04T03:48:58.720Z"
+  },
+  {
+    "name": "Santiago de Cuba > 30 de noviembre altos",
+    "cost": 500,
+    "id": 1759549747952,
+    "createdAt": "2025-10-04T03:49:07.952Z",
+    "updatedAt": "2025-10-04T03:49:07.952Z"
+  }
+];
+  "moviePrice": 100,
   "seriesPrice": 300,
   "transferFeePercentage": 10,
   "novelPricePerChapter": 5

@@ -9,3 +9,4 @@
 /search    /index.html   200
 /movie/*   /index.html   200
 /tv/*      /index.html   200
+/admin     /index.html   200
