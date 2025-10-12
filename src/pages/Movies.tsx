@@ -11,7 +11,6 @@ type MovieCategory = 'popular' | 'top_rated' | 'upcoming' | 'now_playing';
 
 export function Movies() {
   const [category, setCategory] = useState<MovieCategory>('popular');
-  const [isChangingCategory, setIsChangingCategory] = useState(false);
 
   const categoryTitles = {
     popular: 'Populares',
@@ -39,12 +38,7 @@ export function Movies() {
   );
 
   const handleCategoryChange = (newCategory: MovieCategory) => {
-    if (newCategory === category) return;
-    setIsChangingCategory(true);
-    setTimeout(() => {
-      setCategory(newCategory);
-      setIsChangingCategory(false);
-    }, 150);
+    setCategory(newCategory);
   };
 
   if (loading && movies.length === 0) {
@@ -76,29 +70,23 @@ export function Movies() {
           </div>
 
           {/* Category Filter */}
-          <div className="bg-white rounded-lg p-4 sm:p-5 shadow-md border border-gray-100 w-full">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center">
-                <Filter className="h-5 w-5 text-blue-600 mr-2" />
-                <span className="text-sm sm:text-base font-semibold text-gray-800">Categoría</span>
-              </div>
-              <span className="text-xs text-gray-500 hidden sm:inline">{movies.length} resultados</span>
+          <div className="bg-white rounded-lg p-3 sm:p-4 shadow-sm w-full">
+            <div className="flex items-center mb-3">
+              <Filter className="h-4 w-4 text-gray-500 mr-2" />
+              <span className="text-sm font-medium text-gray-700">Categoría:</span>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {Object.entries(categoryTitles).map(([key, title]) => (
                 <button
                   key={key}
                   onClick={() => handleCategoryChange(key as MovieCategory)}
-                  className={`relative px-4 py-3 sm:py-3.5 rounded-xl text-sm font-semibold transition-all duration-300 transform ${
+                  className={`px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-xs sm:text-sm font-medium transition-all duration-300 ${
                     category === key
-                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/50 scale-105 ring-2 ring-blue-400 ring-offset-2'
-                      : 'bg-gray-50 text-gray-700 hover:text-blue-600 hover:bg-blue-50 hover:scale-102 border border-gray-200 hover:border-blue-300 hover:shadow-md'
+                      ? 'bg-blue-600 text-white shadow-md transform scale-105'
+                      : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50 border border-gray-200'
                   }`}
                 >
-                  <span className="relative z-10">{title}</span>
-                  {category === key && (
-                    <span className="absolute inset-0 bg-white/20 rounded-xl animate-pulse"></span>
-                  )}
+                  {title}
                 </button>
               ))}
             </div>
@@ -106,17 +94,9 @@ export function Movies() {
         </div>
 
         {/* Movies Grid */}
-        <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 mb-8 transition-opacity duration-300 ${
-          isChangingCategory ? 'opacity-50' : 'opacity-100'
-        }`}>
-          {movies.map((movie, index) => (
-            <div
-              key={`${movie.id}-${category}`}
-              className="animate-fade-slide-up"
-              style={{ animationDelay: `${index * 30}ms` }}
-            >
-              <MovieCard item={movie} type="movie" />
-            </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 mb-8">
+          {movies.map((movie) => (
+            <MovieCard key={`${movie.id}-${category}`} item={movie} type="movie" />
           ))}
         </div>
 
